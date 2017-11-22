@@ -30,7 +30,7 @@ do_compile () {
 	unset LDFLAGS
 	unset CFLAGS
 	unset CPPFLAGS
-	make CC="$CC" u-boot.bin
+	make CC="$CC" GUMSTIX_400MHZ=y GUMSTIX_600MHZ=n u-boot.bin 
 	uboot-mkimage -A arm -O linux -T script -C none -a 0 -e 0 -n gumstix-factory.script -d ../gumstix-factory.script.source gumstix-factory.script
 }
 
