@@ -1,11 +1,13 @@
 require recipes-kernel/linux/linux-yocto.inc
 
-COMPATIBLE_MACHINE = "overoa;lsjdkfklahjdklf"
+COMPATIBLE_MACHINE = "overo|verdex"
 
 # Pull in the devicetree files into the rootfs
 RDEPENDS_kernel-base += "kernel-devicetree"
 
 KERNEL_DEVICETREE_overo = "omap3-overo-chestnut43.dtb"
+
+KERNEL_DEVICETREE_verdex = "verdex.dtb"
 
 # Auto-load a serial+ethernet connection on a USB OTG/peripheral
 # port if available

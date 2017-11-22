@@ -12,13 +12,7 @@ IMAGE_LINGUAS = "en-us"
 
 inherit core-image
 
-# Gumstix machines individually RDEPEND on the firware they need but we repeat
-# it here as we might want to use the same image on multiple different machines.
-FIRMWARE_INSTALL = " \
-  linux-firmware-sd8686 \
-  linux-firmware-sd8787 \
-  linux-firmware-wl18xx \
-"
+DEPENDS += "mtools-native dosfstools-native parted-native"
 
 SYSTEM_TOOLS_INSTALL = " \
   alsa-utils \
@@ -30,6 +24,7 @@ SYSTEM_TOOLS_INSTALL = " \
 DEV_TOOLS_INSTALL = " \
   memtester \
   mtd-utils-ubifs \
+  u-boot-mkimage \
 "
 
 NETWORK_TOOLS_INSTALL = " \
@@ -74,7 +69,6 @@ UTILITIES_INSTALL = " \
 "
  
 IMAGE_INSTALL += " \
-  ${FIRMWARE_INSTALL} \
   ${SYSTEM_TOOLS_INSTALL} \
   ${DEV_TOOLS_INSTALL} \
   ${NETWORK_TOOLS_INSTALL} \
