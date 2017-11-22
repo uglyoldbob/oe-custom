@@ -30,3 +30,11 @@ SRC_URI = " \
     file://defconfig \
     file://${BOOT_SPLASH} \
 "
+
+do_compile_append_verdex() {
+	uboot-mkimage -A arm -O linux -T kernel -C none -a 0xa0008000 -e 0xa0008000 -n "Linux kernel" -d arch/arm/boot/zImage arch/arm/boot/uImage
+}
+
+do_install_append_verdex() {
+	install arch/arm/boot/uImage ${DEPLOY_DIR_IMAGE}/uimage
+}
