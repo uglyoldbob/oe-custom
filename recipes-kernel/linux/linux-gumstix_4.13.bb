@@ -5,6 +5,12 @@ COMPATIBLE_MACHINE = "overo|verdex"
 # Pull in the devicetree files into the rootfs
 RDEPENDS_kernel-base += "kernel-devicetree"
 
+DEPENDS_verdex += "u-boot-mkimage-native"
+
+KERNEL_IMAGETYPE_verdex = "uImage"
+
+KERNEL_EXTRA_ARGS_verdex += "LOADADDR=0xa0008000"
+
 KERNEL_DEVICETREE_overo = "omap3-overo-chestnut43.dtb"
 
 KERNEL_DEVICETREE_verdex = "verdex.dtb"
@@ -29,12 +35,5 @@ SRC_URI = " \
     git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git;nocheckout=1;branch=linux-4.13.y \
     file://defconfig \
     file://${BOOT_SPLASH} \
+    file://0001-Add-gumstix-verdex-devicetree-bare-minimum.patch \
 "
-
-do_compile_append_verdex() {
-	uboot-mkimage -A arm -O linux -T kernel -C none -a 0xa0008000 -e 0xa0008000 -n "Linux kernel" -d arch/arm/boot/zImage arch/arm/boot/uImage
-}
-
-do_install_append_verdex() {
-	install arch/arm/boot/uImage ${DEPLOY_DIR_IMAGE}/uimage
-}

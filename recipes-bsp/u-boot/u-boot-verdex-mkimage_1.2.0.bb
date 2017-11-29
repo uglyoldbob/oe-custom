@@ -27,7 +27,7 @@ do_compile () {
 
 do_install () {
 	install -d ${D}${bindir}
-	install -m 0755 tools/mkimage ${D}${bindir}/uboot-mkimage
+	install -m 0755 tools/mkimage ${D}${bindir}/uboot-verdex-mkimage
 }
 
 inherit native

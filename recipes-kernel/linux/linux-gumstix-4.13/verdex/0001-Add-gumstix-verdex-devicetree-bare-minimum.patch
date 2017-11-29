@@ -1,0 +1,42 @@
+From 77400577956d07fb36240801942704eb72dc9803 Mon Sep 17 00:00:00 2001
+From: Thomas Epperson <tepperson@briskheat.com>
+Date: Tue, 28 Nov 2017 08:32:06 -0500
+Subject: [PATCH] Add gumstix verdex devicetree (bare minimum)
+
+---
+ arch/arm/boot/dts/Makefile   | 2 ++
+ arch/arm/boot/dts/verdex.dts | 9 +++++++++
+ 2 files changed, 11 insertions(+)
+ create mode 100644 arch/arm/boot/dts/verdex.dts
+
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index 4b17f35..32949cc 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -299,6 +299,8 @@ dtb-$(CONFIG_ARCH_MMP) += \
+ 	pxa168-aspenite.dtb \
+ 	pxa910-dkb.dtb \
+ 	mmp2-brownstone.dtb
++dtb-$(CONFIG_ARCH_PXA) += \
++	verdex.dtb
+ dtb-$(CONFIG_MACH_MESON8B) += \
+ 	meson8b-mxq.dtb \
+ 	meson8b-odroidc1.dtb
+diff --git a/arch/arm/boot/dts/verdex.dts b/arch/arm/boot/dts/verdex.dts
+new file mode 100644
+index 0000000..0883851
+--- /dev/null
++++ b/arch/arm/boot/dts/verdex.dts
+@@ -0,0 +1,9 @@
++/dts-v1/;
++
++#include "pxa27x.dtsi"
++
++/ {
++	model = "PXA270 on Gumstix verdex board";
++	compatible = "gumstix,verdex","marvell,pxa27x";
++};
++
+-- 
+1.9.1
+
