@@ -1,0 +1,399 @@
+From 83840377790335d2145e7640c25591e4f0b7e7a9 Mon Sep 17 00:00:00 2001
+From: Thomas Epperson <tepperson@briskheat.com>
+Date: Thu, 30 Nov 2017 12:21:38 -0500
+Subject: [PATCH] Add device tree support for verdex
+
+---
+ common/ft_build.c         |  44 ++++++++-----
+ drivers/smc911x.c         |   6 +-
+ include/configs/gumstix.h |   5 +-
+ lib_arm/armlinux.c        | 158 +++++++++++++++++++++++++++++++++++++++++++++-
+ 4 files changed, 190 insertions(+), 23 deletions(-)
+
+diff --git a/common/ft_build.c b/common/ft_build.c
+index 980e40f..da98a6a 100644
+--- a/common/ft_build.c
++++ b/common/ft_build.c
+@@ -25,12 +25,14 @@
+ 
+ #ifdef CONFIG_OF_FLAT_TREE
+ 
++#include <asm/byteorder.h>
+ #include <asm/errno.h>
+ #include <stddef.h>
+ 
+ #include <ft_build.h>
+ 
+ #undef DEBUG
++#define DEBUG 1
+ 
+ /* align addr on a size boundary - adjust address up if needed -- Cort */
+ #define _ALIGN(addr,size)       (((addr)+(size)-1)&(~((size)-1)))
+@@ -134,18 +136,19 @@ void ft_init_cxt(struct ft_cxt *cxt, void *blob)
+ 	memset(cxt, 0, sizeof(*cxt));
+ 
+ 	cxt->bph = bph;
+-	bph->boot_cpuid_phys = CONFIG_OF_BOOT_CPU;
++	bph->boot_cpuid_phys = cpu_to_be32(CONFIG_OF_BOOT_CPU);
+ 
+ 	/* find beginning and end of reserve map table (zeros in last entry) */
+-	cxt->p_rsvmap = (u8 *)bph + bph->off_mem_rsvmap;
++	cxt->p_rsvmap = (u8 *)bph + be32_to_cpu(bph->off_mem_rsvmap);
+ 	while ( ((uint64_t *)cxt->p_rsvmap)[0] != 0 &&
+ 		     ((uint64_t *)cxt->p_rsvmap)[1] != 0 ) {
+ 	cxt->p_rsvmap += SIZE_OF_RSVMAP_ENTRY;
+ 	}
+ 
+-	cxt->p_start = (u8 *)bph + bph->off_dt_struct;
+-	cxt->p_end = (u8 *)bph + bph->totalsize;
+-	cxt->p = (u8 *)bph + bph->off_dt_strings;
++	cxt->p_start = (u8 *)bph + be32_to_cpu(bph->off_dt_struct);
++	cxt->p_end = (u8 *)bph + be32_to_cpu(bph->totalsize);
++	cxt->p = (u8 *)bph + be32_to_cpu(bph->off_dt_strings);
++	printf("Set bph->p to %x + %x (%x)\n", bph, be32_to_cpu(bph->off_dt_strings), cxt->p);
+ }
+ 
+ /* add a reserver physical area to the rsvmap */
+@@ -174,10 +177,10 @@ void ft_end_tree(struct ft_cxt *cxt)
+ void ft_finalize_tree(struct ft_cxt *cxt) {
+ 	struct boot_param_header *bph = cxt->bph;
+ 
+-	bph->totalsize = cxt->p_end - (u8 *)bph;
+-	bph->off_dt_struct = cxt->p_start - (u8 *)bph;
+-	bph->off_dt_strings = cxt->p - (u8 *)bph;
+-	bph->dt_strings_size = cxt->p_end - cxt->p;
++	bph->totalsize = cpu_to_be32(cxt->p_end - (u8 *)bph);
++	bph->off_dt_struct = cpu_to_be32(cxt->p_start - (u8 *)bph);
++	bph->off_dt_strings = cpu_to_be32(cxt->p - (u8 *)bph);
++	bph->dt_strings_size = cpu_to_be32(cxt->p_end - cxt->p);
+ }
+ 
+ static inline int isprint(int c)
+@@ -326,10 +329,15 @@ void ft_dump_blob(const void *bphp)
+ void ft_backtrack_node(struct ft_cxt *cxt)
+ {
+ 	int i = 4;
+-
++	printf("backtrack starting at address %x\n", cxt->p);
+ 	while (be32_to_cpu(*(u32 *) (cxt->p - i)) != OF_DT_END_NODE)
++	{
+ 		i += 4;
++		printf("Check %x, %x (%x)\n", cxt->p - i, be32_to_cpu(*(u32 *) (cxt->p - i)), OF_DT_END_NODE );
++	}
++	printf("Check %x, %x (%x)\n", cxt->p - i, be32_to_cpu(*(u32 *) (cxt->p - i)), OF_DT_END_NODE );
+ 
++	printf("memmove %x %x %x\n", cxt->p - i, cxt->p, cxt->p_end - cxt->p);
+ 	memmove (cxt->p - i, cxt->p, cxt->p_end - cxt->p);
+ 
+ 	cxt->p_end -= i;
+@@ -469,26 +477,27 @@ void ft_setup(void *blob, bd_t * bd, ulong initrd_start, ulong initrd_end)
+ 	int i;
+ 	static char tmpenv[256];
+ #endif
+-
++	printf("Before disable_of\n");
+ 	/* disable OF tree; booting old kernel */
+ 	if (getenv("disable_of") != NULL) {
+ 		memcpy(blob, bd, sizeof(*bd));
+ 		return;
+ 	}
++	printf("After disable_of\n");
+ 
+ #ifdef DEBUG
+ 	printf ("recieved oftree\n");
+ 	ft_dump_blob(blob);
+ #endif
+-
++	printf("ft_init_cxt\n");
+ 	ft_init_cxt(&cxt, blob);
+ 
+ 	if (initrd_start && initrd_end)
+ 		ft_add_rsvmap(&cxt, initrd_start, initrd_end - initrd_start + 1);
+-
++	printf("ft_backtrack_node\n");
+ 	/* back into root */
+ 	ft_backtrack_node(&cxt);
+-
++	printf("Check has_uboot_env\n");
+ #ifdef CONFIG_OF_HAS_UBOOT_ENV
+ 	ft_begin_node(&cxt, "u-boot-env");
+ 
+@@ -512,7 +521,7 @@ void ft_setup(void *blob, bd_t * bd, ulong initrd_start, ulong initrd_end)
+ 
+ 	ft_end_node(&cxt);
+ #endif
+-
++	printf("ft_begin_node\n");
+ 	ft_begin_node(&cxt, "chosen");
+ 	ft_prop_str(&cxt, "name", "chosen");
+ 
+@@ -532,7 +541,7 @@ void ft_setup(void *blob, bd_t * bd, ulong initrd_start, ulong initrd_end)
+ 
+ 	ft_end_tree(&cxt);
+ 	ft_finalize_tree(&cxt);
+-
++	printf("Check bd_t\n");
+ #ifdef CONFIG_OF_HAS_BD_T
+ 	/* paste the bd_t at the end of the flat tree */
+ 	end = (char *)blob +
+@@ -576,10 +585,11 @@ void ft_setup(void *blob, bd_t * bd, ulong initrd_start, ulong initrd_end)
+ #endif
+ #endif				/* __powerpc__ */
+ 
++	printf("Check of_board_setup\n");
+ #ifdef CONFIG_OF_BOARD_SETUP
+ 	ft_board_setup(blob, bd);
+ #endif
+-
++	printf("ft_finalize_tree\n");
+ 	/* in case the size changed in the platform code */
+ 	ft_finalize_tree(&cxt);
+ 
+diff --git a/drivers/smc911x.c b/drivers/smc911x.c
+index 60af252..66f3e32 100644
+--- a/drivers/smc911x.c
++++ b/drivers/smc911x.c
+@@ -351,9 +351,9 @@ lan9118_open(bd_t *bis)
+ 	  TotalRXE = 0;
+ 	  TotalBytes = 0;
+ 
+-	  if (bis->bi_bootflags & 0x40000000) {
+-			use_smsc9118 = 1;
+-	  }
++//	  if (bis->bi_bootflags & 0x40000000) {
++//			use_smsc9118 = 1;
++//	  }
+ #endif		//DEBUG
+ 
+ 	  // Because we just came out of h/w reset we can't be sure that
+diff --git a/include/configs/gumstix.h b/include/configs/gumstix.h
+index 319da63..3397317 100644
+--- a/include/configs/gumstix.h
++++ b/include/configs/gumstix.h
+@@ -137,7 +137,7 @@
+ 
+ #define CONFIG_BOOTFILE		boot/uImage
+ #define CONFIG_BOOTARGS		"console=ttyS0,115200n8 root=1f01 rootfstype=jffs2 reboot=cold,hard"
+-#define CONFIG_BOOTCOMMAND	"icache on; setenv stderr nulldev; setenv stdout nulldev; if pinit on && fatload ide 0 a2000000 gumstix-factory.script; then setenv stdout serial; setenv stderr serial; echo Found gumstix-factory.script on CF...; autoscr; else if mmcinit && fatload mmc 0 a2000000 gumstix-factory.script; then setenv stdout serial; setenv stderr serial; echo Found gumstix-factory.script on MMC...; autoscr; else setenv stdout serial; setenv stderr serial; katload 100000 && bootm; fi; fi"
++#define CONFIG_BOOTCOMMAND	"icache on; setenv stderr nulldev; setenv stdout nulldev; if pinit on && fatload ide 0 a2000000 gumstix-factory.script; then setenv stdout serial; setenv stderr serial; echo Found gumstix-factory.script on CF...; autoscr; else if mmcinit && fatload mmc 0 a2000000 gumstix-factory.script; then setenv stdout serial; setenv stderr serial; echo Found gumstix-factory.script on MMC...; autoscr; else setenv stdout serial; setenv stderr serial; katload 408000 && bootm a2008000 - 0xa2000000; fi; fi"
+ #define CONFIG_BOOTDELAY	2		/* in seconds */
+ #define CONFIG_EXTRA_ENV_SETTINGS	"verify=no"
+ #define CFG_HUSH_PARSER
+@@ -225,6 +225,9 @@
+ /*
+  * Definitions related to passing arguments to kernel.
+  */
++
++#define CONFIG_OF_FLAT_TREE 1		/* device tree kernel */
++#define CONFIG_OF_FLAT_TREE_MAX_SIZE 32768 /* device tree blob max size */
+ #define CONFIG_CMDLINE_TAG		/* send commandline to Kernel		*/
+ #define CONFIG_SETUP_MEMORY_TAGS	/* send memory definition to kernel	*/
+ #define CONFIG_INITRD_TAG		/* send initrd params			*/
+diff --git a/lib_arm/armlinux.c b/lib_arm/armlinux.c
+index 3fb7ff9..ee71ab1 100644
+--- a/lib_arm/armlinux.c
++++ b/lib_arm/armlinux.c
+@@ -30,6 +30,10 @@
+ #include <dataflash.h>
+ #endif
+ 
++#ifdef CONFIG_OF_FLAT_TREE
++#include <ft_build.h>
++#endif
++
+ DECLARE_GLOBAL_DATA_PTR;
+ 
+ /*cmd_boot.c*/
+@@ -85,13 +89,27 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
+ 	void (*theKernel)(int zero, int arch, uint params);
+ 	image_header_t *hdr = &header;
+ 	bd_t *bd = gd->bd;
++#ifdef CONFIG_OF_FLAT_TREE
++	char	*of_flat_tree = NULL;
++	ulong	of_data = 0;
++#endif
+ 
+ #ifdef CONFIG_CMDLINE_TAG
+ 	char *commandline = getenv ("bootargs");
+ #endif
+ 
+ 	theKernel = (void (*)(int, int, uint))ntohl(hdr->ih_ep);
+-
++	void	(*kernel)(bd_t *, ulong, ulong, ulong, ulong);
++	kernel = (void (*)(bd_t *, ulong, ulong, ulong, ulong)) ntohl(hdr->ih_ep);
++
++#ifdef CONFIG_OF_FLAT_TREE
++	/* Look for a '-' which indicates to ignore the ramdisk argument */
++	if (argc >= 3 && strcmp(argv[2], "-") ==  0) {
++			debug ("Skipping initrd\n");
++			len = data = 0;
++		}
++	else
++#endif
+ 	/*
+ 	 * Check if there is an initrd image
+ 	 */
+@@ -205,7 +223,102 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
+ 
+ 		len = data = 0;
+ 	}
++#ifdef CONFIG_OF_FLAT_TREE
++	if(argc > 3) {
++		of_flat_tree = (char *) simple_strtoul(argv[3], NULL, 16);
++		hdr = (image_header_t *)of_flat_tree;
++
++		if  (be32_to_cpu(*(ulong *)of_flat_tree) == OF_DT_HEADER) {
++#ifndef CFG_NO_FLASH
++			if (addr2info((ulong)of_flat_tree) != NULL)
++				of_data = (ulong)of_flat_tree;
++#endif
++		} else if (ntohl(hdr->ih_magic) == IH_MAGIC) {
++			printf("## Flat Device Tree Image at %08lX\n", hdr);
++			print_image_hdr(hdr);
++
++			if ((ntohl(hdr->ih_load) <  ((unsigned long)hdr + ntohl(hdr->ih_size) + sizeof(hdr))) &&
++			   ((ntohl(hdr->ih_load) + ntohl(hdr->ih_size)) > (unsigned long)hdr)) {
++				printf ("ERROR: Load address overwrites Flat Device Tree uImage\n");
++				return;
++			}
++
++			printf("   Verifying Checksum ... ");
++			memmove (&header, (char *)hdr, sizeof(image_header_t));
++			checksum = ntohl(header.ih_hcrc);
++			header.ih_hcrc = 0;
++
++			if(checksum != crc32(0, (uchar *)&header, sizeof(image_header_t))) {
++				printf("ERROR: Flat Device Tree header checksum is invalid\n");
++				return;
++			}
+ 
++			checksum = ntohl(hdr->ih_dcrc);
++			addr = (ulong)((uchar *)(hdr) + sizeof(image_header_t));
++			len = ntohl(hdr->ih_size);
++
++			if(checksum != crc32(0, (uchar *)addr, len)) {
++				printf("ERROR: Flat Device Tree checksum is invalid\n");
++				return;
++			}
++			printf("OK\n");
++
++			if (ntohl(hdr->ih_type) != IH_TYPE_FLATDT) {
++				printf ("ERROR: uImage not Flat Device Tree type\n");
++				return;
++			}
++			if (ntohl(hdr->ih_comp) != IH_COMP_NONE) {
++				printf("ERROR: uImage is not uncompressed\n");
++				return;
++			}
++			if (*((ulong *)(of_flat_tree + sizeof(image_header_t))) != OF_DT_HEADER) {
++				printf ("ERROR: uImage data is not a flat device tree\n");
++				return;
++			}
++
++			memmove((void *)ntohl(hdr->ih_load),
++		       		(void *)(of_flat_tree + sizeof(image_header_t)),
++				ntohl(hdr->ih_size));
++			of_flat_tree = (char *)ntohl(hdr->ih_load);
++		} else {
++			printf ("Did not find a flat device tree at address %08lX\n", of_flat_tree);
++			return;
++		}
++		printf ("   Booting using flat device tree at 0x%x\n",
++				of_flat_tree);
++	} else if ((hdr->ih_type==IH_TYPE_MULTI) && (len_ptr[1]) && (len_ptr[2])) {
++		u_long tail    = ntohl(len_ptr[0]) % 4;
++		int i;
++
++		/* skip kernel length, initrd length, and terminator */
++		of_data = (ulong)(&len_ptr[3]);
++		/* skip any additional image length fields */
++		for (i=2; len_ptr[i]; ++i)
++			of_data += 4;
++		/* add kernel length, and align */
++		of_data += ntohl(len_ptr[0]);
++		if (tail) {
++			of_data += 4 - tail;
++		}
++
++		/* add initrd length, and align */
++		tail = ntohl(len_ptr[1]) % 4;
++		of_data += ntohl(len_ptr[1]);
++		if (tail) {
++			of_data += 4 - tail;
++		}
++
++		if (((struct boot_param_header *)of_data)->magic != OF_DT_HEADER) {
++			printf ("ERROR: image is not a flat device tree\n");
++			return;
++		}
++
++		if (((struct boot_param_header *)of_data)->totalsize != ntohl(len_ptr[2])) {
++			printf ("ERROR: flat device tree size does not agree with image\n");
++			return;
++		}
++	}
++#endif
+ #ifdef	DEBUG
+ 	if (!data) {
+ 		printf ("No initrd\n");
+@@ -225,6 +338,27 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
+ 	debug ("## Transferring control to Linux (at address %08lx) ...\n",
+ 	       (ulong) theKernel);
+ 
++#ifdef CONFIG_OF_FLAT_TREE
++	/* move of_flat_tree if needed */
++	if (of_data) {
++		ulong of_start, of_len;
++		of_len = ((struct boot_param_header *)of_data)->totalsize;
++		/* provide extra 8k pad */
++		if (initrd_start)
++			of_start = initrd_start - of_len - 8192;
++		else
++			of_start  = (ulong)0xdeadbeef - of_len - 8192;
++		of_start &= ~(4096 - 1);	/* align on page */
++		debug ("## device tree at 0x%08lX ... 0x%08lX (len=%ld=0x%lX)\n",
++			of_data, of_data + of_len - 1, of_len, of_len);
++
++		of_flat_tree = (char *)of_start;
++		printf ("   Loading Device Tree to %08lx, end %08lx ... ",
++			of_start, of_start + of_len - 1);
++		memmove ((void *)of_start, (void *)of_data, of_len);
++	}
++#endif
++
+ #if defined (CONFIG_SETUP_MEMORY_TAGS) || \
+     defined (CONFIG_CMDLINE_TAG) || \
+     defined (CONFIG_INITRD_TAG) || \
+@@ -266,8 +400,28 @@ void do_bootm_linux (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[],
+ #endif
+ 
+ 	cleanup_before_linux ();
+-
++	printf("Kernel starting address (old) %x (new) %x\n", theKernel, kernel);
++	printf("Device tree check %x\n", of_flat_tree);
++#ifdef CONFIG_OF_FLAT_TREE
++	if (!of_flat_tree)	/* no device tree; boot old style */
++#endif
+ 	theKernel (0, bd->bi_arch_number, bd->bi_boot_params);
++
++#ifdef CONFIG_OF_FLAT_TREE
++	/*
++	 * Linux Kernel Parameters (passing device tree):
++	 *   r3: ptr to OF flat tree, followed by the board info data
++	 *   r4: physical pointer to the kernel itself
++	 *   r5: NULL
++	 *   r6: NULL
++	 *   r7: NULL
++	 */
++	printf("ft_setup running...\n");
++	ft_setup(of_flat_tree, (bd_t *)of_flat_tree, 0, 0);
++	ft_dump_blob(of_flat_tree);
++	printf("Executing kernel now %x @ %x\n", of_flat_tree, kernel);
++	kernel ((bd_t *)of_flat_tree, (ulong)kernel, of_flat_tree, 0, 0);
++#endif
+ }
+ 
+ 
+-- 
+1.9.1
+
