@@ -5,6 +5,8 @@ COMPATIBLE_MACHINE = "overo|verdex"
 # Pull in the devicetree files into the rootfs
 RDEPENDS_kernel-base += "kernel-devicetree"
 
+RDEPENDS_kernel-base_verdex = ""
+
 DEPENDS_verdex += "u-boot-mkimage-native"
 
 KERNEL_IMAGETYPE_verdex = "uImage"

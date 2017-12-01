@@ -3,8 +3,15 @@ LICENSE = "MIT"
 
 MACHINE = "verdex"
 
-IMAGE_FEATURES += "splash package-management ssh-server-openssh"
-IMAGE_FEATURES += "x11-base"
+#max size for 32m flash image
+ROOTFS_MAXSIZE = "29065216"
+IMAGE_BOOT_FILES_verdex = "gumstix-factory.script u-boot.bin uImage"
+IMAGE_FSTYPES = "jffs2"
+
+
+#IMAGE_FEATURES += "splash ssh-server-openssh"
+#IMAGE_FEATURES += "x11-base"
+IMAGE_FEATURES += "read-only-rootfs"
 # Uncomment below to include dev tools and packages
 # IMAGE_FEATURES += "tools-sdk dev-pkgs"
 
@@ -12,56 +19,36 @@ IMAGE_LINGUAS = "en-us"
 
 inherit core-image
 
+addtask do_sizecheck after do_image after before do_build
+
+do_sizecheck() {
+  if [ ! -z ${ROOTFS_MAXSIZE} ]; then
+    size=$(wc -c < ${DEPLOY_DIR_IMAGE}/${IMAGE_LINK_NAME}.jffs2)
+    echo "$size"
+    if [ $size -ge ${ROOTFS_MAXSIZE} ]; then
+      bbfatal  "This rootfs (size=$size) is too big for your device (${ROOTFS_MAXSIZE}). Please reduce the size of the rootfs."
+    fi
+  fi
+}
+
 DEPENDS += "mtools-native dosfstools-native parted-native"
 
 SYSTEM_TOOLS_INSTALL = " \
-  cpufrequtils \
-  systemd-analyze \
-  tzdata \
 "
 
 DEV_TOOLS_INSTALL = " \
-  memtester \
 "
 
 NETWORK_TOOLS_INSTALL = " \
-  curl \
-  dnsmasq \
-  hostapd \
-  iproute2 \
-  iputils \
-  iw \
-  ntp \
-  uim \
 "
 
 MEDIA_TOOLS_INSTALL = " \
-  raw2rgbpnm \
-  v4l-utils \
-  yavta \
 "
 
 GRAPHICS_LIBS = " \
-  mtdev \ 
-  tslib \
 "  
 
 UTILITIES_INSTALL = " \
-  coreutils \
-  diffutils \
-  findutils \
-  gpsd \
-  grep \
-  gzip \
-  less \
-  nano \
-  packagegroup-cli-tools \
-  packagegroup-cli-tools-debug \
-  sudo \
-  tar \
-  vim \
-  wget \
-  zip \
 "
  
 IMAGE_INSTALL += " \
@@ -74,13 +61,7 @@ IMAGE_INSTALL += " \
 "
 
 IMAGE_INSTALL += " \
- florence \
- polkit-gnome \
- polkit-group-rule-network \
- polkit-group-rule-datetime \
 "
-
-IMAGE_INSTALL += "gprogs"
 
 # Create a generic 'gumstix' user account, part of the gumstix group,
 # using '/bin/sh' and with a home directory '/home/gumstix' (see
