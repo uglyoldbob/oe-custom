@@ -1,13 +1,17 @@
-From 741e2652283d0af90f19b257df9b005acdd62b2e Mon Sep 17 00:00:00 2001
+From 24fcd2a17973a4a878c40cd45b195caaaebaa689 Mon Sep 17 00:00:00 2001
 From: Thomas Epperson <tepperson@briskheat.com>
 Date: Tue, 28 Nov 2017 08:32:06 -0500
 Subject: [PATCH] Add gumstix verdex devicetree (bare minimum)
 
 ---
- arch/arm/boot/dts/Makefile   |  2 ++
- arch/arm/boot/dts/verdex.dts | 17 +++++++++++++++++
- 2 files changed, 19 insertions(+)
+ arch/arm/boot/dts/Makefile       |   2 +
+ arch/arm/boot/dts/verdex.dts     |  37 ++++++++++
+ drivers/mtd/maps/Kconfig         |   7 ++
+ drivers/mtd/maps/Makefile        |   1 +
+ drivers/mtd/maps/gumstix-flash.c | 146 +++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 193 insertions(+)
  create mode 100644 arch/arm/boot/dts/verdex.dts
+ create mode 100644 drivers/mtd/maps/gumstix-flash.c
 
 diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
 index 4b17f35..32949cc 100644
@@ -24,17 +28,17 @@ index 4b17f35..32949cc 100644
  	meson8b-odroidc1.dtb
 diff --git a/arch/arm/boot/dts/verdex.dts b/arch/arm/boot/dts/verdex.dts
 new file mode 100644
-index 0000000..f1ee7ad
+index 0000000..cf4d2e2
 --- /dev/null
 +++ b/arch/arm/boot/dts/verdex.dts
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,37 @@
 +/dts-v1/;
 +
 +#include "pxa27x.dtsi"
 +
 +/ {
 +	model = "PXA270 on Gumstix verdex board";
-+	compatible = "marvell,pxa270";
++	compatible = "gumstix,verdex", "marvell,pxa270";
 +	memory {
 +		reg = <0xa0000000 0x4000000>;
 +	};
@@ -42,9 +46,211 @@ index 0000000..f1ee7ad
 +		ffuart: uart@40100000 {
 +			status = "okay";
 +		};
++
++		btuart: uart@40200000 {
++			status = "okay";
++		};
++
++		stuart: uart@40700000 {
++			status = "okay";
++		};
++
++		hwuart: uart@41100000 {
++			status = "okay";
++		};
++	};
++	flash {
++		compatible = "gumstix-flash";
++	};
++	chosen {
++		name = "chosen";
++		bootargs = "console=ttyS0,115200n8 root=1f01 rootfstype=jffs2 reboot=cold,hard debug earlyprintk";
++		linux,platform = <600>;
 +	};
 +};
 +	
+diff --git a/drivers/mtd/maps/Kconfig b/drivers/mtd/maps/Kconfig
+index 542fdf8..081ff5a 100644
+--- a/drivers/mtd/maps/Kconfig
++++ b/drivers/mtd/maps/Kconfig
+@@ -171,6 +171,13 @@ config MTD_SBC_GXX
+ 	  More info at
+ 	  <http://www.arcomcontrols.com/products/icp/pc104/processors/SBC_GX1.htm>.
+ 
++config MTD_GUMSTIX
++	tristate "CFI Flash device mapped on Gumstix"
++	depends on (PXA25x || PXA27x) && MTD_CFI_INTELEXT
++	help
++	  This provides a driver for the on-board flash of the Gumstix
++	  single board computers.
++
+ config MTD_PXA2XX
+ 	tristate "CFI Flash device mapped on Intel XScale PXA2xx based boards"
+ 	depends on (PXA25x || PXA27x) && MTD_CFI_INTELEXT
+diff --git a/drivers/mtd/maps/Makefile b/drivers/mtd/maps/Makefile
+index 5a09a72..2113bd9 100644
+--- a/drivers/mtd/maps/Makefile
++++ b/drivers/mtd/maps/Makefile
+@@ -15,6 +15,7 @@ obj-$(CONFIG_MTD_ESB2ROM)	+= esb2rom.o
+ obj-$(CONFIG_MTD_ICHXROM)	+= ichxrom.o
+ obj-$(CONFIG_MTD_CK804XROM)	+= ck804xrom.o
+ obj-$(CONFIG_MTD_TSUNAMI)	+= tsunami_flash.o
++obj-$(CONFIG_MTD_GUMSTIX)	+= gumstix-flash.o
+ obj-$(CONFIG_MTD_PXA2XX)	+= pxa2xx-flash.o
+ obj-$(CONFIG_MTD_PHYSMAP)	+= physmap.o
+ physmap_of-objs-y		+= physmap_of_core.o
+diff --git a/drivers/mtd/maps/gumstix-flash.c b/drivers/mtd/maps/gumstix-flash.c
+new file mode 100644
+index 0000000..d100bc4
+--- /dev/null
++++ b/drivers/mtd/maps/gumstix-flash.c
+@@ -0,0 +1,146 @@
++/*
++ * Map driver for the Gumstix platform
++ *
++ * Author:	Craig Hughes
++ * 
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/module.h>
++#include <linux/types.h>
++#include <linux/slab.h>
++#include <linux/kernel.h>
++#include <linux/platform_device.h>
++#include <linux/mtd/mtd.h>
++#include <linux/mtd/map.h>
++#include <linux/mtd/partitions.h>
++
++#include <asm/io.h>
++#include <mach/hardware.h>
++
++#include <asm/mach/flash.h>
++
++
++#define ROM_ADDR	0x00000000
++#define FLASH_ADDR	0x00000000
++
++#define WINDOW_SIZE 	64*1024*1024
++
++static struct map_info gumstix_flash_maps[1] = { {
++	.name =		"Gumstix Flash ROM",
++	.size =		WINDOW_SIZE,
++	.phys =		FLASH_ADDR,
++	.bankwidth =	2,
++} };
++
++static struct mtd_partition gumstix_flash_partitions[] = {
++	{
++		.name =		"Bootloader",
++		.size =		0x00040000,
++		.offset =	FLASH_ADDR
++	},{
++		.name =		"RootFS",
++		.size =		0x1BB8000,
++		.offset =	MTDPART_OFS_NXTBLK
++	},{
++		.name =		"DeviceTree",
++		.size =		0x8000,
++		.offset =	MTDPART_OFS_NXTBLK
++	},{
++		.name =		"Kernel",
++		.size =		0x00400000,
++		.offset =	MTDPART_OFS_NXTBLK
++	}
++};
++
++struct pxa2xx_flash_info {
++	struct mtd_info		*mtd;
++	struct map_info		map;
++};
++
++static struct mtd_info *mymtds[1];
++static struct mtd_partition *parsed_parts[1];
++static int nr_parsed_parts[1];
++
++static const char *probes[] = { "cmdlinepart", "ofpart", NULL };
++
++static int gumstix_flashmap_init(struct platform_device *pdev)
++{
++	int ret = 0, i;
++
++
++	for (i = 0; i < 1; i++) {
++		gumstix_flash_maps[i].virt = ioremap(gumstix_flash_maps[i].phys, WINDOW_SIZE);
++		if (!gumstix_flash_maps[i].virt) {
++			printk(KERN_WARNING "Failed to ioremap %s\n", gumstix_flash_maps[i].name);
++			if (!ret)
++				ret = -ENOMEM;
++			continue;
++		}
++		simple_map_init(&gumstix_flash_maps[i]);
++
++		printk(KERN_NOTICE "Probing %s at physical address 0x%08lx (%d-bit bankwidth)\n",
++		       gumstix_flash_maps[i].name, gumstix_flash_maps[i].phys, 
++		       gumstix_flash_maps[i].bankwidth * 8);
++
++		mymtds[i] = do_map_probe("cfi_probe", &gumstix_flash_maps[i]);
++		
++		if (!mymtds[i]) {
++			iounmap((void *)gumstix_flash_maps[i].virt);
++			if (gumstix_flash_maps[i].cached)
++				iounmap(gumstix_flash_maps[i].cached);
++			if (!ret)
++				ret = -EIO;
++			continue;
++		}
++		mymtds[i]->owner = THIS_MODULE;
++
++		if (mtd_device_parse_register(mymtds[i], probes, NULL, gumstix_flash_partitions, 4) == 0 )
++			ret = 4;
++		else
++			ret = 0;
++	}
++	printk(KERN_NOTICE "Gumstix flashmap init check mymtds\n");
++	if (!mymtds[0])
++		return ret;
++
++	printk(KERN_NOTICE "Gumstix flashmap init exiting\n");
++	return 0;
++}
++
++static int gumstix_flashmap_cleanup(struct platform_device *dev)
++{
++	struct pxa2xx_flash_info *info = platform_get_drvdata(dev);
++
++	mtd_device_unregister(info->mtd);
++
++	map_destroy(info->mtd);
++	iounmap(info->map.virt);
++	if (info->map.cached)
++		iounmap(info->map.cached);
++	kfree(info);
++	return 0;
++}
++
++static const struct of_device_id gumstix_of_ids[] = {
++	{ .compatible = "gumstix-flash" },
++	{ }
++};
++
++static struct platform_driver gumstix_flash_driver = {
++	.driver = {
++		.name		= "gumstix-flash",
++		.of_match_table = gumstix_of_ids,
++	},
++	.probe		= gumstix_flashmap_init,
++	.remove		= gumstix_flashmap_cleanup,
++};
++
++module_platform_driver(gumstix_flash_driver);
++MODULE_DEVICE_TABLE(of, gumstix_of_ids);
++
++MODULE_LICENSE("GPL");
++MODULE_AUTHOR("Gumstix, Inc. <gumstix-users@lists.sf.net>");
++MODULE_DESCRIPTION("MTD map driver for the Gumstix Platform");
 -- 
 1.9.1
 

@@ -15,7 +15,6 @@ inherit core-image
 DEPENDS += "mtools-native dosfstools-native parted-native"
 
 SYSTEM_TOOLS_INSTALL = " \
-  alsa-utils \
   cpufrequtils \
   systemd-analyze \
   tzdata \
@@ -23,8 +22,6 @@ SYSTEM_TOOLS_INSTALL = " \
 
 DEV_TOOLS_INSTALL = " \
   memtester \
-  mtd-utils-ubifs \
-  u-boot-mkimage \
 "
 
 NETWORK_TOOLS_INSTALL = " \
@@ -39,7 +36,6 @@ NETWORK_TOOLS_INSTALL = " \
 "
 
 MEDIA_TOOLS_INSTALL = " \
-  media-ctl \
   raw2rgbpnm \
   v4l-utils \
   yavta \
@@ -79,7 +75,6 @@ IMAGE_INSTALL += " \
 
 IMAGE_INSTALL += " \
  florence \
- gnome-bluetooth \
  polkit-gnome \
  polkit-group-rule-network \
  polkit-group-rule-datetime \
