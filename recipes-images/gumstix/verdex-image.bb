@@ -1,10 +1,11 @@
-DESCRIPTION = "A custom image for Gumstix verdex boards."
+DESCRIPTION = "A 32M flash image for Gumstix verdex boards."
 LICENSE = "MIT"
 
 MACHINE = "verdex"
 
 #max size for 32m flash image
 ROOTFS_MAXSIZE = "29065216"
+IMAGE_ROOTFS_SIZE = "28384"
 IMAGE_BOOT_FILES_verdex = "gumstix-factory.script u-boot.bin uImage"
 IMAGE_FSTYPES = "jffs2"
 
@@ -17,7 +18,7 @@ IMAGE_FEATURES += "read-only-rootfs"
 
 IMAGE_LINGUAS = "en-us"
 
-inherit core-image
+inherit image
 
 addtask do_sizecheck after do_image after before do_build
 
@@ -31,37 +32,13 @@ do_sizecheck() {
   fi
 }
 
+IMAGE_INSTALL = "packagegroup-core-boot"
+
+RDEPENDS_${PN} = "\
+    base-files \
+"
+
 DEPENDS += "mtools-native dosfstools-native parted-native"
-
-SYSTEM_TOOLS_INSTALL = " \
-"
-
-DEV_TOOLS_INSTALL = " \
-"
-
-NETWORK_TOOLS_INSTALL = " \
-"
-
-MEDIA_TOOLS_INSTALL = " \
-"
-
-GRAPHICS_LIBS = " \
-"  
-
-UTILITIES_INSTALL = " \
-"
- 
-IMAGE_INSTALL += " \
-  ${SYSTEM_TOOLS_INSTALL} \
-  ${DEV_TOOLS_INSTALL} \
-  ${NETWORK_TOOLS_INSTALL} \
-  ${MEDIA_TOOLS_INSTALL} \
-  ${GRAPHICS_LIBS} \
-  ${UTILITIES_INSTALL} \
-"
-
-IMAGE_INSTALL += " \
-"
 
 # Create a generic 'gumstix' user account, part of the gumstix group,
 # using '/bin/sh' and with a home directory '/home/gumstix' (see

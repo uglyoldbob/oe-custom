@@ -1,3 +1,5 @@
+KERNEL_IMAGETYPE_verdex = "uImage"
+
 require recipes-kernel/linux/linux-yocto.inc
 
 COMPATIBLE_MACHINE = "overo|verdex"
@@ -8,8 +10,6 @@ RDEPENDS_kernel-base += "kernel-devicetree"
 RDEPENDS_kernel-base_verdex = ""
 
 DEPENDS_verdex += "u-boot-mkimage-native"
-
-KERNEL_IMAGETYPE_verdex = "uImage"
 
 KERNEL_EXTRA_ARGS_verdex += "LOADADDR=0xa0008000"
 

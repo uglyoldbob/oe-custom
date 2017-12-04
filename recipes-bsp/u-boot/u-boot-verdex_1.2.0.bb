@@ -15,9 +15,11 @@ DEPENDS = "libgcc u-boot-verdex-mkimage"
 
 PR = "r7"
 
-SRCREV = "master"
+SRCREV = "ca6bf3ef6ac5f5132a359b43dfa31e07076b74b7"
 SRC_URI = "git://github.com/ashcharles/verdex-uboot.git \
-	file://gumstix-factory.script.source"
+	file://gumstix-factory.script.source \
+	file://0001-Add-device-tree-support-for-verdex.patch \
+"
 
 do_configure () {
 	export CROSS_COMPILE="${TARGET_PREFIX}"
