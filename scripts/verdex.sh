@@ -2,8 +2,8 @@
 echo "Running"
 echo $1
 set -e
-QEMU_DEBUG="-s -S"
-#QEMU_DEBUG=" "
+#QEMU_DEBUG="-s -S"
+QEMU_DEBUG="-s"
 bitbake $1
 case "$2" in
  net )
@@ -15,9 +15,10 @@ case "$2" in
  qemuflash )
   echo "Making flash image for qemu"
   rm flash
-  dd of=flash bs=1k count=16k if=/dev/zero
+  dd of=flash bs=1k count=32k if=/dev/zero
   dd of=flash bs=1k conv=notrunc if=tmp/deploy/images/verdex/u-boot.bin
   dd of=flash bs=1k conv=notrunc seek=256 if=tmp/deploy/images/verdex/$1-verdex.jffs2
+  dd of=flash bs=1k conv=notrunc seek=28640 if=tmp/deploy/images/verdex/uImage-verdex.dtb
   dd of=flash bs=1k conv=notrunc seek=28672 if=tmp/deploy/images/verdex/uImage
   echo "Running qemu"
   qemu-system-arm -M verdex -pflash flash -monitor null -nographic -m 289 $QEMU_DEBUG

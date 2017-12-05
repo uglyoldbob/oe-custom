@@ -1,3 +1,3 @@
 #!/bin/sh
-export TEMPLATECONF=meta-gumstix-extras/conf
+export TEMPLATECONF=meta-uglyoldbob/conf
 source ./poky/oe-init-build-env
