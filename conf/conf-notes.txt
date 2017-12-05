@@ -1,0 +1,4 @@
+Common targets are:
+    verdex-image
+    overo-image
+    xbox-image
