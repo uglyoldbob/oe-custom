@@ -15,8 +15,8 @@ DEPENDS = "libgcc u-boot-verdex-mkimage"
 
 PR = "r7"
 
-SRCREV = "ca6bf3ef6ac5f5132a359b43dfa31e07076b74b7"
-SRC_URI = "git://github.com/ashcharles/verdex-uboot.git \
+SRCREV = "ccbbb06d53cbbb6b37cd41f0a11ae6d706923409"
+SRC_URI = "git://github.com/uglyoldbob/verdex-uboot.git \
 	file://gumstix-factory.script.source \
 	file://0001-Add-device-tree-support-for-verdex.patch \
 "
