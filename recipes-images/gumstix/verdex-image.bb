@@ -49,6 +49,7 @@ python do_runqemu() {
     image_name = d.getVar('IMAGE_BASENAME', True)
     flashname = "%s/%s.flash" % (deploy_dir, image_name)
     oe_terminal("${SHELL} -c \"qemu-system-arm -M verdex -pflash %s -monitor null -nographic -m 289\"" % flashname, "Running qemu", d)
+    bb.fatal("This error is so this task will always run")
 }
 
 IMAGE_INSTALL = "packagegroup-core-boot"
