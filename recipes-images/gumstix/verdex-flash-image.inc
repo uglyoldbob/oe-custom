@@ -1,7 +1,7 @@
 DESCRIPTION = "A flash image for Gumstix verdex boards."
 LICENSE = "MIT"
 
-MACHINE = "verdex"
+COMPATIBLE_MACHINE = "verdex"
 
 IMAGE_BOOT_FILES_verdex = "gumstix-factory.script u-boot.bin uImage"
 IMAGE_FSTYPES = "jffs2"
@@ -15,6 +15,7 @@ IMAGE_FEATURES += "read-only-rootfs"
 IMAGE_LINGUAS = "en-us"
 
 inherit image
+inherit simulator
 
 addtask do_sizecheck after do_image after before do_build
 do_sizecheck() {
@@ -40,19 +41,6 @@ do_flashbuild() {
   dd of=${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}.flash bs=1k conv=notrunc seek=$rootstart if=${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-verdex.jffs2
   dd of=${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}.flash bs=1k conv=notrunc seek=$dtstart if=${DEPLOY_DIR_IMAGE}/uImage-verdex.dtb
   dd of=${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}.flash bs=1k conv=notrunc seek=$kernstart if=${DEPLOY_DIR_IMAGE}/uImage
-}
-
-addtask do_simulate after do_build
-do_simulate[nostamp] = "1"
-python do_simulate() {
-    if d.getVar('SIMULATOR_NAME', True) is None:
-      bb.fatal("SIMULATOR_NAME does not exist, cannot continue with simulation")
-    if d.getVar('SIMULATOR_ARGS', True) is None:
-      bb.fatal("SIMULATOR_ARGS does not exist, cannot continue with simulation")
-    simname = d.getVar('SIMULATOR_NAME', True)
-    simargs = "%s" % d.getVar('SIMULATOR_ARGS', True)
-    totalsimcmd = "\"%s %s\" & read" % (simname, simargs)
-    oe_terminal("${SHELL} -c %s" % totalsimcmd, "Running simulator", d)
 }
 
 IMAGE_INSTALL = "packagegroup-core-boot"
