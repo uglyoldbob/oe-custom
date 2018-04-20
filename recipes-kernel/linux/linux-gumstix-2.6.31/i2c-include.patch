@@ -1,0 +1,44 @@
+Index: linux-2.6.31/arch/arm/mach-pxa/gumstix-verdex.c
+===================================================================
+--- linux-2.6.31/arch/arm/mach-pxa/gumstix-verdex.c	2010-02-23 14:30:28.054719692 -0800
++++ linux-2.6.31/arch/arm/mach-pxa/gumstix-verdex.c	2010-02-23 14:25:22.474718610 -0800
+@@ -40,7 +40,7 @@
+ #include <mach/udc.h>
+ #include <mach/pxafb.h>
+ #include <mach/ohci.h>
+-#include <mach/i2c.h>
++#include <../../plat-pxa/include/plat/i2c.h>
+ #include <mach/pxa27x.h>
+ #include <mach/pxa27x-udc.h>
+ #include <mach/gpio.h>
+
+Index: linux-2.6.31/arch/arm/mach-pxa/generic.c
+===================================================================
+--- linux-2.6.31.orig/arch/arm/mach-pxa/generic.c	2010-02-23 13:32:40.290718451 -0800
++++ linux-2.6.31/arch/arm/mach-pxa/generic.c	2010-02-23 13:33:39.786719118 -0800
+@@ -28,7 +28,7 @@
+ 
+ #include <mach/reset.h>
+ #include <mach/gpio.h>
+-#include <mach/pxa2xx-gpio.h>
++#include <mach/mfp-pxa27x.h>
+ 
+ #include "generic.h"
+ 
+Index: linux-2.6.31/arch/arm/mach-pxa/include/mach/mfp-pxa27x.h
+===================================================================
+--- linux-2.6.31.orig/arch/arm/mach-pxa/include/mach/mfp-pxa27x.h	2010-02-23 13:58:02.188219570 -0800
++++ linux-2.6.31/arch/arm/mach-pxa/include/mach/mfp-pxa27x.h	2010-02-23 14:04:23.126718341 -0800
+@@ -10,6 +10,12 @@
+ 
+ #include <mach/mfp-pxa2xx.h>
+ 
++#define GPIO_MD_MASK_NR         0x07f
++#define GPIO_MD_MASK_DIR        0x080
++#define GPIO_MD_MASK_FN         0x300
++#define GPIO_DFLT_LOW           0x400
++#define GPIO_DFLT_HIGH          0x800
++
+ /* Note: GPIO3/GPIO4 will be driven by Power I2C when PCFR/PI2C_EN
+  * bit is set, regardless of the GPIO configuration
+  */

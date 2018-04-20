@@ -1,0 +1,21 @@
+Index: linux-2.6.31/drivers/net/wireless/libertas/main.c
+===================================================================
+--- linux-2.6.31.orig/drivers/net/wireless/libertas/main.c	2010-03-05 13:26:07.353984549 -0800
++++ linux-2.6.31/drivers/net/wireless/libertas/main.c	2010-03-05 13:27:06.672984470 -0800
+@@ -1176,7 +1176,7 @@
+ 	/* Allocate an Ethernet device and register it */
+ 	dev = alloc_etherdev(sizeof(struct lbs_private));
+ 	if (!dev) {
+-		lbs_pr_err("init ethX device failed\n");
++		lbs_pr_err("init wlanX device failed\n");
+ 		goto done;
+ 	}
+ 	priv = netdev_priv(dev);
+@@ -1204,6 +1204,7 @@
+ 	SET_NETDEV_DEV(dev, dmdev);
+ 
+ 	priv->rtap_net_dev = NULL;
++	strcpy(dev->name, "wlan%d");
+ 
+ 	lbs_deb_thread("Starting main thread...\n");
+ 	init_waitqueue_head(&priv->waitq);

@@ -1,0 +1,502 @@
+diff --git a/drivers/input/touchscreen/Makefile b/drivers/input/touchscreen/Makefile
+--- a/drivers/input/touchscreen/Makefile	2010-02-23 12:35:13.703723542 -0800
++++ b/drivers/input/touchscreen/Makefile	2010-02-23 12:36:33.910720285 -0800
+@@ -29,6 +29,7 @@
+ obj-$(CONFIG_TOUCHSCREEN_TOUCHRIGHT)	+= touchright.o
+ obj-$(CONFIG_TOUCHSCREEN_TOUCHWIN)	+= touchwin.o
+ obj-$(CONFIG_TOUCHSCREEN_TSC2007)	+= tsc2007.o
++obj-$(CONFIG_TOUCHSCREEN_TSC2003)	+= tsc2003.o
+ obj-$(CONFIG_TOUCHSCREEN_UCB1400)	+= ucb1400_ts.o
+ obj-$(CONFIG_TOUCHSCREEN_WACOM_W8001)	+= wacom_w8001.o
+ obj-$(CONFIG_TOUCHSCREEN_WM97XX)	+= wm97xx-ts.o
+
+diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
+index 5a23c82..f4bae85 100644
+--- a/drivers/input/touchscreen/Kconfig
++++ b/drivers/input/touchscreen/Kconfig
+@@ -481,6 +481,17 @@ config TOUCHSCREEN_TOUCHIT213
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called touchit213.
+ 
++config TOUCHSCREEN_TSC2003
++	tristate "TSC2003 based touchscreens"
++	depends on I2C
++	help
++	  Say Y here if you have a TSC2003 based touchscreen.
++
++	  If unsure, say N.
++
++	  To compile this driver as a module, choose M here: the
++	  module will be called tsc2003.
++
+ config TOUCHSCREEN_TSC2007
+ 	tristate "TSC2007 based touchscreens"
+ 	depends on I2C
+diff --git a/drivers/input/touchscreen/tsc2003.c b/drivers/input/touchscreen/tsc2003.c
+index e69de29..ab62ed1 100644
+--- a/drivers/input/touchscreen/tsc2003.c
++++ b/drivers/input/touchscreen/tsc2003.c
+@@ -0,0 +1,463 @@
++/*
++ *  linux/drivers/i2c/chips/tsc2003.c
++ *
++ *  Copyright (C) 2005 Bill Gatliff <bgat at billgatliff.com>
++ *  Changes for 2.6.20 kernel by Nicholas Chen <nchen at cs.umd.edu>
++ *  Changes for 2.6.21 kernel by Chris Dollar <chris.dollar at gmail.com>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License version 2 as
++ *  published by the Free Software Foundation.
++ *
++ *  Driver for TI's TSC2003 I2C Touch Screen Controller
++ */
++
++//#include <linux/config.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/slab.h>
++#include <linux/i2c.h>
++#include <linux/string.h>
++#include <linux/bcd.h>
++#include <linux/list.h>
++#include <linux/device.h>
++#include <linux/interrupt.h>
++#include <linux/input.h>
++#include <linux/delay.h>
++#include <linux/i2c/tsc2007.h>
++
++#define TSC2003_CMD(cn,pdn,m) (((cn) << 4) | ((pdn) << 2) | ((m) << 1))
++#define ADC_MAX ((1 << 12) - 1)
++
++//#define CONFIG_I2C_DEBUG_CHIP 1
++
++enum tsc2003_pd {
++	PD_POWERDOWN = 0, 	/* penirq */
++	PD_IREFOFF_ADCON = 1, 	/* no penirq */
++	PD_IREFON_ADCOFF = 2, 	/* penirq */
++	PD_IREFON_ADCON = 3, 	/* no penirq */
++	PD_PENIRQ_ARM = PD_IREFON_ADCOFF,
++	PD_PENIRQ_DISARM = PD_IREFON_ADCON,
++};
++
++enum tsc2003_m {
++	M_12BIT = 0,
++	M_8BIT = 1
++};
++
++enum tsc2003_cmd {
++	MEAS_TEMP0 = 0,
++	MEAS_VBAT1 = 1,
++	MEAS_IN1 = 2,
++	MEAS_TEMP1 = 4,
++	MEAS_VBAT2 = 5,
++	MEAS_IN2 = 6,
++	ACTIVATE_NX_DRIVERS = 8,
++	ACTIVATE_NY_DRIVERS = 9,
++	ACTIVATE_YNX_DRIVERS = 10,
++	MEAS_XPOS = 12,
++	MEAS_YPOS = 13,
++	MEAS_Z1POS = 14,
++	MEAS_Z2POS = 15
++};
++
++struct tsc2003_data {
++	struct i2c_client* client; // ptr to i2c_client is passed in via probe
++	char	phys[32];
++
++	struct device_driver driver;
++	struct input_dev *idev;
++	struct semaphore sem;
++	struct task_struct *tstask;
++	struct completion tstask_completion;
++	struct completion penirq_completion;
++	enum tsc2003_pd pd;
++	enum tsc2003_m m;
++
++	int penirq;
++	int vbat1;
++	int vbat2;
++	int temp0;
++	int temp1;
++	int in1;
++	int in2;
++};
++
++static int tsc2003_i2c_detect(struct i2c_adapter *adapter, int address, int kind);
++
++static int tsc2003_read(struct tsc2003_data *ts, enum tsc2003_cmd cmd, enum tsc2003_pd pd, int *val) 
++{
++	char c;
++	char d[2];
++	int ret;
++
++	c = TSC2003_CMD(cmd, pd, ts->m);
++	ret = i2c_master_send(ts->client, &c, 1);
++	if (ret <= 0)
++		goto err;
++
++	udelay(20);
++	ret = i2c_master_recv(ts->client, d, ts->m == M_12BIT ? 2 : 1);
++	if (ret <= 0)
++		goto err;
++
++	if (val) {
++		*val = d[0];
++		*val <<= 4;
++		if (ts->m == M_12BIT)
++			*val += (d[1] >> 4);
++	}
++
++#if defined(CONFIG_I2C_DEBUG_CHIP)
++	printk(KERN_ERR "%s: val[%x] = %d\n",
++			__FUNCTION__, cmd, (((int)d[0]) << 8) + d[1]);
++#endif
++
++	return 0;
++	err: if (!ret)
++		ret = -ENODEV;
++	return ret;
++}
++
++static inline int tsc2003_read_xpos(struct tsc2003_data *ts, enum tsc2003_pd pd, int *x) 
++{
++	return tsc2003_read(ts, MEAS_XPOS, pd, x);
++}
++
++static inline int tsc2003_read_ypos(struct tsc2003_data *ts, enum tsc2003_pd pd, int *y) 
++{
++	return tsc2003_read(ts, MEAS_YPOS, pd, y);
++}
++
++static inline int tsc2003_read_pressure(struct tsc2003_data *ts, enum tsc2003_pd pd, int *p) 
++{
++	return tsc2003_read(ts, MEAS_Z1POS, pd, p);
++}
++
++static inline int tsc2003_powerdown(struct tsc2003_data *ts) 
++{
++	/* we don't have a distinct powerdown command,
++	 so do a benign read with the PD bits cleared */
++	return tsc2003_read(ts, MEAS_IN1, PD_POWERDOWN, 0);
++}
++
++void tsc2003_init_client(struct i2c_client *client) 
++{
++	struct tsc2003_data *ts = i2c_get_clientdata(client);
++
++	ts->pd = PD_PENIRQ_DISARM;
++	ts->m = M_8BIT;
++	return;
++}
++
++static irqreturn_t tsc2003_penirq(int irq, void *v) 
++{
++	struct tsc2003_data *ts = v;
++
++	// disable the penirq while we take the sample					
++	disable_irq_nosync(ts->penirq);
++
++	complete(&ts->penirq_completion);
++	return IRQ_HANDLED;
++}
++
++static void tsc2003_free_irq(struct tsc2003_data *ts)
++{
++	free_irq(ts->penirq, ts);
++}
++
++
++static int tsc2003ts_thread(void *v) 
++{
++	unsigned int x=0;
++	unsigned int y=0;
++	unsigned int p=0;
++	int pen_down = 0;
++	unsigned int dx=0;
++	unsigned int dy=0;
++
++	struct tsc2003_data *ts = v;
++	struct task_struct *tsk = current;
++
++	printk(KERN_INFO "%s\n", __FUNCTION__);
++
++	ts->tstask = tsk;
++
++	daemonize("%s tsd", ts->idev->name);
++	allow_signal(SIGKILL);
++
++	complete(&ts->tstask_completion);
++
++#if defined(CONFIG_I2C_DEBUG_CHIP)
++	printk(KERN_INFO "%s: address 0x%x\n",
++			__FUNCTION__, ts->client->addr);
++#endif		
++
++	do {
++	unsigned int x, y, p;
++    int pen_is_up = 0;
++
++	down(&ts->sem);
++
++	// take the sample
++	ts->pd = PD_PENIRQ_DISARM;
++	tsc2003_read_xpos(ts, PD_PENIRQ_DISARM, &x);
++	tsc2003_read_ypos(ts, PD_PENIRQ_DISARM, &y);
++	tsc2003_read_pressure(ts, PD_PENIRQ_DISARM, &p);
++
++      if (p < 64) {
++        p=0;
++      }
++
++#if defined(CONFIG_I2C_DEBUG_CHIP)
++      printk(KERN_INFO "TSD X: %d Y: %d P: %d\n", x, y, p);
++#endif		
++
++      if (!pen_is_up) {
++        // report our touch to the input layer
++        input_report_abs(ts->idev, ABS_X, 4096 - x);
++        input_report_abs(ts->idev, ABS_Y, 4096 - y);
++        input_report_abs(ts->idev, ABS_PRESSURE, p);
++        input_sync(ts->idev);
++      }
++
++      if(p == 0) {
++#if defined(CONFIG_I2C_DEBUG_CHIP)
++        printk(KERN_INFO "No pressure - pen is up!\n");
++#endif		
++        // set our pen as up
++        pen_is_up = 1;                            
++      }                    
++      else {                    
++#if defined(CONFIG_I2C_DEBUG_CHIP)
++        printk(KERN_INFO "Pen is still down - sleeping and will re-sample!\n");
++#endif		
++        // set our pen as down
++        pen_is_up = 0;                            
++      }
++
++      // sleep for 3 jiffies to give us about 30 updates/sec
++      // msleep (3);
++      schedule_timeout_interruptible(msecs_to_jiffies(30));
++
++      up(&ts->sem);
++
++	} while (!signal_pending(tsk));
++
++	ts->tstask = NULL;
++	complete_and_exit(&ts->tstask_completion, 0);
++}
++
++static int tsc2003_idev_open(struct input_dev *idev) 
++{
++	struct tsc2003_data *ts = input_get_drvdata(idev);
++	int ret = 0;
++
++	printk(KERN_INFO "%s\n", __FUNCTION__);
++
++	if (down_interruptible(&ts->sem))
++		return -EINTR;
++
++	if (ts->tstask)
++		panic("%s tsd already running (!). abort.", idev->name);
++
++	ret = kernel_thread(tsc2003ts_thread, ts, CLONE_KERNEL);
++	if (ret >= 0) 
++	{
++		wait_for_completion(&ts->tstask_completion);
++		ret = 0;
++	}
++
++	up(&ts->sem);
++	return ret;
++}
++
++static void tsc2003_idev_close(struct input_dev *idev) 
++{
++	struct tsc2003_data *ts = input_get_drvdata(idev);
++
++	printk(KERN_INFO "%s\n", __FUNCTION__);
++
++	down_interruptible(&ts->sem);
++	if (ts->tstask) 
++	{
++		send_sig(SIGKILL, ts->tstask, 1);
++		wait_for_completion(&ts->tstask_completion);
++	}
++	up(&ts->sem);
++	return;
++}
++
++
++static int tsc2003_driver_register(struct tsc2003_data *ts) 
++{
++	struct input_dev *idev;
++	struct i2c_client *client;
++	int ret = 0;
++	int error;
++
++	init_MUTEX(&ts->sem);
++
++	printk(KERN_INFO "%s\n", __FUNCTION__);
++
++	client = ts->client;
++	if (ts->penirq) {
++		ret = request_irq(ts->penirq, tsc2003_penirq, IRQF_TRIGGER_LOW, client->dev.driver->name, ts);
++		if (!ret) {
++			printk(KERN_INFO "%s: irq %d\n", __FUNCTION__, ts->penirq);
++			init_completion(&ts->tstask_completion);
++			init_completion(&ts->penirq_completion);
++		} else {
++			printk(KERN_ERR "%s: cannot grab irq %d\n", __FUNCTION__, ts->penirq);
++		}
++	}
++
++	idev = input_allocate_device();
++	ts->idev = idev;
++
++	snprintf(ts->phys, sizeof(ts->phys),
++		 "%s/input0", dev_name(&client->dev));
++
++	input_set_drvdata(ts->idev, ts);
++	idev->name = client->dev.driver->name;
++	idev->phys = ts->phys;
++	idev->id.bustype = BUS_I2C;
++
++	idev->evbit[0] = BIT(EV_ABS);
++	set_bit(EV_SYN, idev->evbit);
++        set_bit(EV_KEY, idev->evbit);
++        set_bit(BTN_TOUCH, idev->keybit);
++	set_bit(EV_ABS, idev->evbit);
++
++	idev->open = tsc2003_idev_open;
++	idev->close = tsc2003_idev_close;
++	idev->absbit[(long)(ABS_X)] = BIT(ABS_X);
++	idev->absbit[(long)(ABS_Y)] = BIT(ABS_Y);
++	idev->absbit[(long)(ABS_PRESSURE)] = BIT(ABS_PRESSURE);
++	input_set_abs_params(idev, ABS_X, 0, ADC_MAX, 0, 0);
++	input_set_abs_params(idev, ABS_Y, 0, ADC_MAX, 0, 0);
++	input_set_abs_params(idev, ABS_PRESSURE, 0, 0, 0, 0);
++
++	ret = input_register_device(ts->idev);
++	if(ret) {
++		input_free_device(ts->idev);
++		return ret;
++	}
++	return ret;
++}
++
++static int __devinit tsc2003_probe(struct i2c_client *client,
++				   const struct i2c_device_id *id)
++{
++	struct tsc2003_data *ts;
++	struct tsc2007_platform_data *pdata = pdata = client->dev.platform_data;
++	struct input_dev *idev;
++	int err;
++
++	printk(KERN_INFO "%s\n", __FUNCTION__);
++
++	printk(KERN_INFO "tsc2003 i2c touch screen controller\n");
++	printk(KERN_INFO "Bill Gatliff <bgat at billgatliff.com\n");
++	printk(KERN_INFO "Nicholas Chen <nchen at cs.umd.edu>\n");
++
++
++	if (!pdata) {
++		printk(KERN_ERR "tsc2003 platform data is required!\n");
++		return -EINVAL;
++	}
++
++
++	printk(KERN_INFO "%s: checking i2c\n", __FUNCTION__);
++
++	if (!i2c_check_functionality( client->adapter, I2C_FUNC_SMBUS_BYTE_DATA
++				     | I2C_FUNC_I2C | I2C_FUNC_SMBUS_WORD_DATA))
++		return -EIO;
++
++	printk(KERN_INFO "%s: calling kzalloc\n", __FUNCTION__);
++
++	ts = kzalloc(sizeof(struct tsc2003_data), GFP_KERNEL);
++
++	ts->client = client; // ts->client is a pointer to the i2c_client struct
++	ts->penirq = client->irq;
++
++	/* try a command, see if we get an ack;
++	 if we do, assume it's our device */
++	printk(KERN_INFO "%s: probing address 0x%x\n",
++			__FUNCTION__, client->addr);
++
++	err = tsc2003_powerdown(ts);
++	if (err >= 0)
++		err = tsc2003_driver_register(ts);
++
++	if (err < 0)
++		goto err_free_mem;
++
++	printk(KERN_INFO "%s: device address 0x%x attached.\n",
++			__FUNCTION__, client->addr);
++
++	i2c_set_clientdata(client, ts);
++
++	printk(KERN_INFO "%s: exit ok\n", __FUNCTION__);
++	return 0;
++
++ err_free_irq:
++	tsc2003_free_irq(ts);
++	if (pdata->exit_platform_hw)
++		pdata->exit_platform_hw();
++ err_free_mem:
++	input_free_device(idev);
++	kfree(ts);
++	return err;
++}
++
++static int __devexit tsc2003_remove(struct i2c_client *client)
++{
++	struct tsc2003_data *ts = i2c_get_clientdata(client);
++	struct tsc2007_platform_data *pdata = client->dev.platform_data;
++
++	tsc2003_free_irq(ts);
++
++	if (pdata->exit_platform_hw)
++		pdata->exit_platform_hw();
++
++	input_unregister_device(ts->idev);
++	kfree(ts);
++
++	return 0;
++}
++
++
++static struct i2c_device_id tsc2003_idtable[] = {
++	{ "tsc2003", 0 },
++	{ }
++};
++
++MODULE_DEVICE_TABLE(i2c, tsc2003_idtable);
++
++static struct i2c_driver tsc2003_driver = {
++	.driver = {
++		.owner	= THIS_MODULE,
++		.name	= "tsc2003"
++	},
++	.id_table	= tsc2003_idtable,
++	.probe		= tsc2003_probe,
++	.remove		= __devexit_p(tsc2003_remove),
++};
++
++static int __init tsc2003_init(void)
++{
++	return i2c_add_driver(&tsc2003_driver);
++}
++
++static void __exit tsc2003_exit(void)
++{
++	i2c_del_driver(&tsc2003_driver);
++}
++
++module_init(tsc2003_init);
++module_exit(tsc2003_exit);
++
++MODULE_AUTHOR("Bill Gatliff <bgat at billgatliff.com>");
++MODULE_DESCRIPTION("TSC2003 Touch Screen Controller driver");
++MODULE_LICENSE("GPL");
++

@@ -37,5 +37,8 @@ SRC_URI = " \
     git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git;nocheckout=1;branch=linux-4.13.y \
     file://defconfig \
     file://${BOOT_SPLASH} \
+"
+
+SRC_URI_verdex += " \
     file://0001-Add-gumstix-verdex-devicetree-bare-minimum.patch \
 "
