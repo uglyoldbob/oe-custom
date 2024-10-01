@@ -1,0 +1,6 @@
+define KMACHINE altera-deca
+define KTYPE standard
+
+include ktypes/standard
+
+kconf hardware altera-deca.cfg

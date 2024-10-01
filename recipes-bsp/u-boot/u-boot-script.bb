@@ -3,7 +3,7 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/MIT;md5=0835ad
 
 DEPENDS = "u-boot-tools-native"
 
-SRC_URI = "file://boot.cmd"
+SRC_URI:xjrad = "file://boot.cmd"
 
 do_compile() {
    ${WORKDIR}/recipe-sysroot-native/usr/bin/mkimage -C none -A arm -T script -d ${WORKDIR}/boot.cmd ${WORKDIR}/boot.scr

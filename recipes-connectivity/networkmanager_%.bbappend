@@ -1,6 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
-SRC_URI += "file://ethernet-static.nmconnection \
+SRC_URI:xjrad += "file://ethernet-static.nmconnection \
 	file://ethernet-dhcp.nmconnection \
 "
 
