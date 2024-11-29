@@ -12,8 +12,6 @@ IMAGE_FSTYPES = "tar.gz tar.gz.enc wic wic.gz wic.zst"
 
 inherit core-image swupdate-enc
 
-WKS_FILE = "auto-radio.wks"
-
 FILESEXTRAPATHS:prepend := "${TOPDIR}:"
 
 SRC_URI += "file://conf/keys.conf"

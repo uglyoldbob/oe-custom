@@ -1,4 +1,4 @@
-require recipes-kernel/linux/linux-yocto_6.6.bb
+require recipes-kernel/linux/linux-yocto-tiny_6.6.bb
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 COMPATIBLE_MACHINE = "altera-deca"

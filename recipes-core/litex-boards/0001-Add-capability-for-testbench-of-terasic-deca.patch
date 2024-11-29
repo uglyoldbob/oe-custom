@@ -1,0 +1,523 @@
+From b6c3e78fd60e71c3964e5dde8eea05f7051c1fcd Mon Sep 17 00:00:00 2001
+From: Thomas Epperson <thomas.epperson@gmail.com>
+Date: Fri, 29 Nov 2024 07:30:48 -0600
+Subject: [PATCH] Add capability for testbench of terasic deca
+
+---
+ litex_boards/platforms/terasic_deca.py |  20 --
+ litex_boards/targets/terasic_deca.py   | 389 +++++++++++++++++++------
+ 2 files changed, 301 insertions(+), 108 deletions(-)
+
+diff --git a/litex_boards/platforms/terasic_deca.py b/litex_boards/platforms/terasic_deca.py
+index a02a3b8..4fb42ee 100644
+--- a/litex_boards/platforms/terasic_deca.py
++++ b/litex_boards/platforms/terasic_deca.py
+@@ -100,7 +100,6 @@ _io = [
+         Subsignal("dm", Pins("N19 J15"),
+             IOStandard("SSTL-15"),
+             Misc("OUTPUT_TERMINATION \"SERIES 40 OHM WITH CALIBRATION\""),
+-            Misc("DM_PIN ON")
+         ),
+         Subsignal("dq", Pins(
+             "L20 L19 L18 M15 M18 M14 M20 N20",
+@@ -119,7 +118,6 @@ _io = [
+         Subsignal("clk_p", Pins("D18"),
+             IOStandard("DIFFERENTIAL 1.5-V SSTL"),
+             Misc("OUTPUT_TERMINATION \"SERIES 40 OHM WITH CALIBRATION\""),
+-            Misc("CKN_CK_PAIR ON -from ddram_clk_n")
+         ),
+         Subsignal("clk_n", Pins("E18"),
+             IOStandard("DIFFERENTIAL 1.5-V SSTL"),
+@@ -320,24 +318,6 @@ class Platform(AlteraPlatform):
+         self.add_platform_command("set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF")
+         self.add_platform_command("set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF")
+         self.add_platform_command("set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE \"SINGLE IMAGE WITH ERAM\"")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[0]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[1]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[2]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[3]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[4]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[5]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[6]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dq[7]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[8]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[9]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[10]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[11]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[12]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[13]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[14]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dq[15]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[0] -to ddram_dm[0]")
+-        self.add_platform_command("set_instance_assignment -name DQ_GROUP 9 -from ddram_dqs_p[1] -to ddram_dm[1]")
+ 
+     def create_programmer(self):
+         return USBBlaster(cable_name="Arrow MAX 10 DECA")
+diff --git a/litex_boards/targets/terasic_deca.py b/litex_boards/targets/terasic_deca.py
+index b94061f..b0dc5e7 100755
+--- a/litex_boards/targets/terasic_deca.py
++++ b/litex_boards/targets/terasic_deca.py
+@@ -13,22 +13,88 @@
+ from migen import *
+ from litex_boards.platforms import terasic_deca
+ 
++from litex.build.generic_platform import *
++
+ from litex.gen import *
+ 
+ from litex.soc.cores.clock import Max10PLL
+ from litex.soc.integration.soc_core import *
+ from litex.soc.integration.builder import *
++from litex.soc.integration.soc import SoCRegion
++from litex.soc.interconnect import wishbone
+ from litex.soc.cores.video import VideoDVIPHY
+ from litex.soc.cores.led import LedChaser
+ 
+-from litedram.modules import AS4C128M16
+-from litedram.phy import DecaDdr3Phy
++from migen.fhdl.verilog import _printexpr as verilog_printexpr
+ 
++from litedram.phy import decaddr3
+ from BrianHG_DDR3 import Ddr3
+-
++from UberDdr3 import UberDdr3
+ 
+ from liteeth.phy.mii import LiteEthPHYMII
+ 
++import os;
++
++class Potato(Special):
++    def __init__(self, sig, period):
++        Special.__init__(self)
++        self.sig = sig
++        self.delay = period / 2
++    
++    @staticmethod
++    def emit_verilog(me, ns, add_data_file):
++        def pe(e):
++            return verilog_printexpr(ns, e)[0]
++        r = "initial begin\n"
++        r += "    " + pe(me.sig) + " = 0;\n"
++        r += "    forever begin\n"
++        r += "    #" + str(int(me.delay)) + " " + pe(me.sig) + " = ~" \
++            + pe(me.sig) + ";\n"
++        r += "    end\n"
++        r += "end\n\n"
++        return r
++
++class TestBench(LiteXModule):
++    def __init__(self, platform, args, testbench):
++        self.clk = Signal()
++        self.comb += [platform.lookup_request("clk50").eq(self.clk)]
++        self.a = Signal()
++        self.b = testbench.request("user_led")
++        pads = platform.lookup_request("user_led")
++        self.comb += [self.b.eq(self.a)]
++        self.specials += Potato(self.clk, 20000)
++        pads = platform.lookup_request("ddram")
++        
++        self.specials += Instance("ddr3",
++            name = "ddr3_test",
++            i_ck = pads.clk_p,
++            i_ck_n = pads.clk_n,
++            i_rst_n = pads.reset_n,
++            i_cke = pads.cke,
++            i_cs_n = pads.cs_n,
++            i_ras_n = pads.ras_n,
++            i_cas_n = pads.cas_n,
++            i_we_n = pads.we_n,
++            i_odt = pads.odt,
++            i_addr = pads.a,
++            i_ba = pads.ba,
++            io_dm_tdqs = pads.dm,
++            io_dq = pads.dq,
++            io_dqs = pads.dqs_p,
++            io_dqs_n = pads.dqs_n,
++            )
++        
++        if args.with_spi_sdcard:
++            pads = platform.lookup_request("sdcard")
++            print("sd card pads:", pads.__dir__())
++            self.specials += Instance("sdcardsim",
++                io_A = pads.sel,
++                io_B = pads.fb_clk,
++                io_C = pads.clk,
++                io_D = pads.cmd,
++                io_E = pads.data
++                )
++
+ # CRG ----------------------------------------------------------------------------------------------
+ 
+ class _CRG(LiteXModule):
+@@ -37,6 +103,9 @@ class _CRG(LiteXModule):
+         self.cd_sys  = ClockDomain()
+         self.cd_hdmi = ClockDomain()
+         self.cd_usb  = ClockDomain()
++        self.cd_dummy1 = ClockDomain()
++        self.cd_dummy2 = ClockDomain()
++        self.cd_dummy3 = ClockDomain()
+ 
+         # # #
+ 
+@@ -47,8 +116,12 @@ class _CRG(LiteXModule):
+         self.pll = pll = Max10PLL(speedgrade="-6")
+         self.comb += pll.reset.eq(self.rst)
+         pll.register_clkin(clk50, 50e6)
++        pll.register_clkin(clk50, 50e6)
+         pll.create_clkout(self.cd_sys,  sys_clk_freq)
+         pll.create_clkout(self.cd_hdmi, 40e6)
++        pll.create_clkout(self.cd_dummy1, sys_clk_freq)
++        pll.create_clkout(self.cd_dummy2, sys_clk_freq)
++        pll.create_clkout(self.cd_dummy3, sys_clk_freq)
+ 
+         # USB PLL.
+         if with_usb_pll:
+@@ -58,12 +131,175 @@ class _CRG(LiteXModule):
+             self.comb += pll.reset.eq(self.rst)
+             pll.register_clkin(ulpi.clk, 60e6)
+             pll.create_clkout(self.cd_usb, 60e6, phase=-120) # -120° from DECA's example (also validated with LUNA).
++        else:
++            pll.create_clkout(self.cd_usb, sys_clk_freq)
++
++class Ddr3Option1a(LiteXModule):
++    def __init__(self, core, platform, sys_clk_freq, reset):
++        pads = platform.request("ddram")
++        self.ddr3phy = decaddr3.DecaDdr3Phy(self, pads, platform, reset, sys_clk_freq)
++        core.add_sdram("ddr3",
++            phy           = self.ddr3phy,
++            module        = self.ddr3phy.module,
++            l2_cache_size = 8192,
++        )
++        
++class Ddr3Option1b(LiteXModule):
++    def __init__(self, core, platform, sys_clk_freq, reset):
++        pads = platform.request("ddram")
++        self.ddr3phy = decaddr3.DecaDdr3Phyb(self, pads, platform, reset, sys_clk_freq)
++        core.add_sdram("ddr3",
++            phy           = self.ddr3phy,
++            module        = self.ddr3phy.module,
++            l2_cache_size = 8192,
++        )
++
++class Ddr3Option2(LiteXModule):
++    def __init__(self, core, platform, sys_clk_freq, reset):
++        pads = platform.request("ddram")
++        led_pads = platform.request_all("user_led")
++        debug = Signal(8)
++        ddr3 = Ddr3(platform)
++        ddr_clk = ClockSignal("sys")
++        ddr3_dm = Signal(2)
++        wb_enable = Signal()
++        wb_ack = Signal()
++        ddr_read_ready = Signal()
++        ddr_write_ready = Signal()
++        ddr_write_enable = Signal()
++        ddr_ready = Signal()
++        wb_sdram = wishbone.Interface(data_width=core.bus.data_width, address_width=29, addressing="word")
++        self.specials += Instance("BrianHG_DDR3_CONTROLLER_v16_wb_slave",
++            p_CLK_IN_MULT=24,
++            p_DDR3_SPEED_GRADE = "-125",
++            p_DDR3_SIZE_GB = 0,
++            p_USE_TOGGLE_OUTPUTS = 0,
++            p_SKIP_PUP_TIMER = 1,
++            i_RST_IN = reset,
++            i_CLK_IN = ddr_clk,
++            i_CMD_ena = wb_enable,
++            i_CMD_write_ena = ddr_write_enable,
++            i_CMD_wdata = wb_sdram.dat_w,
++            i_CMD_wmask = wb_sdram.sel,
++            i_reset_phy = 0,
++            i_reset_cmd = 0,
++            i_SEQ_refresh_hold = 0,
++            i_CMD_priority_boost = 0,
++            o_CMD_read_ready = ddr_read_ready,
++            o_CMD_read_data = wb_sdram.dat_r,
++            i_CMD_addr = wb_sdram.adr,
++            o_DDR3_READY = ddr_ready,
++            o_DDR3_CK_p = pads.clk_p,
++            o_DDR3_CK_n = pads.clk_n,
++            o_DDR3_RESET_n = pads.reset_n,
++            o_DDR3_CKE = pads.cke,
++            o_DDR3_CS_n = pads.cs_n,
++            o_DDR3_RAS_n = pads.ras_n,
++            o_DDR3_CAS_n = pads.cas_n,
++            o_DDR3_WE_n = pads.we_n,
++            o_DDR3_ODT = pads.odt,
++            o_DDR3_A = pads.a,
++            o_DDR3_BA = pads.ba,
++            io_DDR3_DM = ddr3_dm,
++            io_DDR3_DQ = pads.dq,
++            io_DDR3_DQS_p = pads.dqs_p,
++            io_DDR3_DQS_n = pads.dqs_n,
++            )
++        self.comb += [wb_sdram.ack.eq(wb_ack),
++            ddr_write_ready.eq(wb_sdram.we & ddr_ready),
++            wb_ack.eq(wb_sdram.stb & (ddr_read_ready | ddr_write_ready) & ddr_ready),
++            pads.dm.eq(ddr3_dm),
++            wb_enable.eq(wb_sdram.cyc & wb_sdram.stb & ddr_ready),
++            ddr_write_enable.eq(wb_sdram.we & ddr_ready),
++            debug.eq(~Cat(ddr_ready, wb_sdram.cyc, wb_sdram.stb, wb_ack, 1, 1, 0, 1)),
++            led_pads.eq(debug),
++        ]
++        main_ram_region = SoCRegion(
++            origin = 0x40000000,
++            size   = 0x20000000,
++            mode   = "rwx")
++        core.bus.add_slave(name="main_ram", slave=wb_sdram, region=main_ram_region)
++
++# ddram_a is X
++# DDR3_A
++# BHG_DDR3_IO_PORT_ALTERA(DDR3_A)
++# BHG_DDR3_IO_PORT_ALTERA(A)
++# RX_ADDR
++# TX_ADDR
++# TX_ADDRs
++# DDR3_READYl2 ? CMD_A : TX_ADDRil2
++
++# CMD_A
++# BrianHG_DDR3_CMD_SEQUENCER_v16(OUT_A)
++
++class Ddr3Option3(LiteXModule):
++    def __init__(self, core, platform, sys_clk_freq, reset):
++        pads = platform.request("ddram")
++        ddr3 = UberDdr3(platform)
++        ddr_clk = ClockSignal("sys")
++        ddr3_dm = Signal(2)
++        wb_enable = Signal()
++        wb_ack = Signal()
++        ddr_read_ready = Signal()
++        ddr_write_ready = Signal()
++        ddr_ready = Signal()
++        ddr_write_enable = Signal()
++        wb_sdram = wishbone.Interface(data_width=core.bus.data_width, address_width=29, addressing="word")
++        self.specials += Instance("ddr3_top",
++            p_CONTROLLER_CLK_PERIOD=sys_clk_freq,
++            p_CLK_IN_MULT=24,
++            p_DDR3_SPEED_GRADE = "-125",
++            p_DDR3_SIZE_GB = 0,
++            p_USE_TOGGLE_OUTPUTS = 0,
++            p_SKIP_PUP_TIMER = 0,
++            i_RST_IN = reset,
++            i_CLK_IN = ddr_clk,
++            i_CMD_ena = wb_enable,
++            i_CMD_write_ena = ddr_write_enable,
++            i_CMD_wdata = wb_sdram.dat_w,
++            i_CMD_wmask = wb_sdram.sel,
++            i_reset_phy = 0,
++            i_reset_cmd = 0,
++            i_SEQ_refresh_hold = 0,
++            i_CMD_priority_boost = 0,
++            o_CMD_read_ready = ddr_read_ready,
++            o_CMD_read_data = wb_sdram.dat_r,
++            i_CMD_addr = wb_sdram.adr,
++            o_DDR3_READY = ddr_ready,
++            o_DDR3_CK_p = pads.clk_p,
++            o_DDR3_CK_n = pads.clk_n,
++            o_DDR3_RESET_n = pads.reset_n,
++            o_DDR3_CKE = pads.cke,
++            o_DDR3_CS_n = pads.cs_n,
++            o_DDR3_RAS_n = pads.ras_n,
++            o_DDR3_CAS_n = pads.cas_n,
++            o_DDR3_WE_n = pads.we_n,
++            o_DDR3_ODT = pads.odt,
++            o_DDR3_A = pads.a,
++            o_DDR3_BA = pads.ba,
++            io_DDR3_DM = ddr3_dm,
++            io_DDR3_DQ = pads.dq,
++            io_DDR3_DQS_p = pads.dqs_p,
++            io_DDR3_DQS_n = pads.dqs_n,
++            )
++        self.comb += [wb_sdram.ack.eq(wb_ack),
++            ddr_write_ready.eq(wb_sdram.we & ddr_ready),
++            wb_ack.eq(wb_sdram.stb & (ddr_read_ready | ddr_write_ready)),
++            pads.dm.eq(ddr3_dm),
++            wb_enable.eq(wb_sdram.cyc),
++            ddr_write_enable.eq(wb_sdram.we & ddr_ready),
++        ]
++        main_ram_region = SoCRegion(
++            origin = 0x40000000,
++            size   = 0x20000000,
++            mode   = "rwx")
++        core.bus.add_slave(name="main_ram", slave=wb_sdram, region=main_ram_region)
+ 
+ # BaseSoC ------------------------------------------------------------------------------------------
+ 
+ class BaseSoC(SoCCore):
+     def __init__(self, sys_clk_freq=50e6,
+-        with_led_chaser     = True,
++        with_led_chaser     = False,
+         with_video_terminal = False,
+         with_spi_sdcard     = False,
+         with_ethernet       = False,
+@@ -74,6 +310,16 @@ class BaseSoC(SoCCore):
+         **kwargs):
+         self.platform = platform = terasic_deca.Platform()
+ 
++        self.io = [("user_led", 0, Pins("C7"),  IOStandard("1.2 V")),
++            ("user_led", 1, Pins("C8"),  IOStandard("1.2 V")),
++            ("user_led", 2, Pins("A6"),  IOStandard("1.2 V")),
++            ("user_led", 3, Pins("B7"),  IOStandard("1.2 V")),
++            ("user_led", 4, Pins("C4"),  IOStandard("1.2 V")),
++            ("user_led", 5, Pins("A5"),  IOStandard("1.2 V")),
++            ("user_led", 6, Pins("B4"),  IOStandard("1.2 V")),
++            ("user_led", 7, Pins("C5"),  IOStandard("1.2 V"))]
++        self.connectors = []
++
+         # CRG --------------------------------------------------------------------------------------
+         self.crg = self.crg = _CRG(platform, sys_clk_freq, with_usb_pll=False)
+ 
+@@ -136,93 +382,44 @@ class BaseSoC(SoCCore):
+                 sys_clk_freq = sys_clk_freq)
+         
+         if with_dram:
+-            ddr3 = Ddr3(platform)
+-            ddr3_pads = platform.request("ddram")
+-            ddr3_reset = Signal()
+-            ddr3_reset.eq(0)
+-            ddr_clk = Signal()
+-            ddr_clk_rdq = Signal()
+-            ddr_clk_wdq = Signal()
+-            ddr_clk_50 = Signal()
+-            ddr_clk_25 = Signal()
+-            ddr_cmd_clk = Signal()
+-            ddr_pll_locked = Signal()
+-            ddr_pll_phase_step = Signal()
+-            ddr_pll_phase_updn = Signal()
+-            ddr_pll_tune_phase_done = Signal()
+-            ddr_seq_cmd_ena_t = Signal()
+-            ddr_seq_write_ena = Signal()
+-            ddr_seq_addr = Signal(30)
+-            ddr_seq_wdata = Signal(128)
+-            ddr_seq_rdata = Signal(128)
+-            ddr_seq_wmask = Signal(16)
+-            ddr_seq_rdata_vect_in = Signal(5)
+-            ddr_seq_rdata_vect_out = Signal(5)
+-            ddr_seq_refresh_hold = Signal()
+-            ddr_seq_refresh_hold.eq(0)
+-            ddr_seq_busy_t = Signal()
+-            ddr_seq_rdata_rdy_t = Signal()
+-            ddr_seq_refresh_queue = Signal(5)
+-            ddr_pll_rdcal_data = Signal(8)
+-            dram_pll = Instance("BrianHG_DDR3_PLL",
+-                i_RST_IN = ddr3_reset,
+-                o_DDR3_CLK = ddr_clk,
+-                o_DDR3_CLK_WDQ = ddr_clk_wdq,
+-                o_DDR3_CLK_RDQ = ddr_clk_rdq,
+-                o_DDR3_CLK_50 = ddr_clk_50,
+-                o_DDR3_CLK_25 = ddr_clk_25,
+-                o_CMD_CLK = ddr_cmd_clk,
+-                o_PLL_LOCKED = ddr_pll_locked,
+-                i_phase_step = ddr_pll_phase_step,
+-                i_phase_updn = ddr_pll_phase_updn,
+-                i_phase_sclk = ddr_clk_25,
+-                o_phase_done = ddr_pll_tune_phase_done,
+-                )
+-            self.dram = Instance(ddr3.ddr(),
+-                o_DDR3_RESET_n = ddr3_pads.reset_n,
+-                o_DDR3_CK_p = ddr3_pads.clk_p,
+-                o_DDR3_CK_n = ddr3_pads.clk_n,
+-                o_DDR3_CKE = ddr3_pads.cke,
+-                o_DDR3_CS_n = ddr3_pads.cs_n,
+-                o_DDR3_RAS_n = ddr3_pads.ras_n,
+-                o_DDR3_CAS_n = ddr3_pads.cas_n,
+-                o_DDR3_WE_n = ddr3_pads.we_n,
+-                o_DDR3_ODT = ddr3_pads.odt,
+-                o_DDR3_A = ddr3_pads.a,
+-                o_DDR3_BA = ddr3_pads.ba,
+-                io_DDR3_DM = ddr3_pads.dm,
+-                io_DDR3_DQ = ddr3_pads.dq,
+-                io_DDR3_DQS_p = ddr3_pads.dqs_p,
+-                io_DDR3_DQS_n = ddr3_pads.dqs_n,
+-                i_RST_IN = ddr3_reset,
+-                i_DDR_CLK = ddr_clk,
+-                i_DDR_CLK_RDQ = ddr_clk_rdq,
+-                i_DDR_CLK_WDQ = ddr_clk_wdq,
+-                i_DDR_CLK_50 = ddr_clk_50,
+-                i_DDR_CLK_25 = ddr_clk_25,
+-                i_CLK_IN = ClockSignal("sys"),
+-                i_CMD_CLK = ddr_cmd_clk,
+-                i_SEQ_CMD_ENA_t = ddr_seq_cmd_ena_t,
+-                i_SEQ_WRITE_ENA = ddr_seq_write_ena,
+-                i_SEQ_ADDR = ddr_seq_addr,
+-                i_SEQ_WDATA = ddr_seq_wdata,
+-                i_SEQ_WMASK = ddr_seq_wmask,
+-                i_SEQ_RDATA_VECT_IN = ddr_seq_rdata_vect_in,
+-                i_SEQ_refresh_hold = ddr_seq_refresh_hold,
+-                o_SEQ_BUSY_t = ddr_seq_busy_t,
+-                o_SEQ_RDATA_RDY_t = ddr_seq_rdata_rdy_t,
+-                o_SEQ_RDATA = ddr_seq_rdata,
+-                o_SEQ_RDATA_VECT_OUT = ddr_seq_rdata_vect_out,
+-                o_SEQ_refresh_queue = ddr_seq_refresh_queue,
+-                i_phase_done = ddr_pll_tune_phase_done,
+-                o_phase_step = ddr_pll_phase_step,
+-                o_phase_updn = ddr_pll_phase_updn,
+-                o_RDCAL_data = ddr_pll_rdcal_data,
+-            )
+-            self.specials += [self.dram]
++            reset = Signal()
++            self.comb += [reset.eq(~self.crg.pll.locked)]
++            self.dram = Ddr3Option2(self, platform, sys_clk_freq, reset)
+ 
+ # Build --------------------------------------------------------------------------------------------
+ 
++def prepare_brianhg_sim(platform):
++    ldir = os.getcwd()
++    r = "cp %s/terasic_deca_mem.init ./\n" % ldir
++    r += "cp %s/terasic_deca_sram.init ./\n" % ldir
++    r += "cp %s/terasic_deca_rom.init ./\n" % ldir
++    r += "vlog +define+den4096Mb +define+sg125 -sv -work work +incdir+%s {%s/ddr3.v}\n" % (ldir, ldir)
++    r += "config wave -signalnamewidth 1\n"
++    r += "add wave /mtb/dut/BrianHG_DDR3_CONTROLLER_v16_wb_slave/DDR3_READY\n"
++    return r
++
++def prepare_uber_ddr3(platform):
++    r = ""
++    return r
++
++def build_sim_script(platform):
++    ldir = os.getcwd()
++    r = "transcript on\n"
++    r += prepare_brianhg_sim(platform)
++    r += "vlog -sv -work work +incdir+%s {%s/mtb.v}\n" % (ldir, ldir)
++    r += "vsim -suppress 8630 -suppress 3839 -t 1ps -L altera -L altera_mf -L lpm_ver -L sgate_ver -L altera_mf_ver -L altera_lnsim_ver -L fiftyfivenm_ver -L work -voptargs=\"+acc\"    mtb\n"
++    r += "add wave /mtb/*\n"
++    r += "add wave /mtb/dut/wb_*\n"
++    r += "add wave /mtb/dut/VexRiscv/memory_PC\n"
++    r += "log * -r\n"
++    r += "restart -force\n"
++    r += "run 18us\n"
++    r += "wave cursor active\n"
++    r += "wave refresh\n"
++    r += "#wave zoom range 780ns 880ns\n"
++    r += "view signals\n"
++    return r
++
+ def main():
+     from litex.build.parser import LiteXArgumentParser
+     parser = LiteXArgumentParser(platform=terasic_deca.Platform, description="LiteX SoC on DECA.")
+@@ -248,6 +445,22 @@ def main():
+         with_dram           = args.with_dram,
+         **parser.soc_argdict
+     )
++    
++    soc.platform.add_platform_command("set_global_assignment -name EDA_OUTPUT_DATA_FORMAT \"SYSTEMVERILOG HDL\" -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_SIMULATION_TOOL \"QuestaSim (SystemVerilog)\"")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_TIME_SCALE \"1 ps\" -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_TEST_BENCH_ENABLE_STATUS COMMAND_MACRO_MODE -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_NATIVELINK_SIMULATION_TEST_BENCH mtb -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_NATIVELINK_SIMULATION_SETUP_SCRIPT bench.do -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name EDA_SIMULATION_RUN_SCRIPT bench.do -section_id eda_simulation")
++    soc.platform.add_platform_command("set_global_assignment -name COMMAND_MACRO_FILE bench.do")
++    soc.platform.add_platform_command("set_global_assignment -name VERILOG_MACRO den4096Mb")
++    
++    soc.platform.add_testbench(TestBench(soc.platform, args, soc.platform.prepare_testbench(soc.io, soc.connectors, "1ps", "1ps")),
++        soc.platform, 
++        "mtb", "bench.do",
++        build_sim_script)
++    
+     builder = Builder(soc, **parser.builder_argdict)
+     if args.build:
+         builder.build(**parser.toolchain_argdict)
+-- 
+2.34.1
+

@@ -1,0 +1,416 @@
+From fbcff98b7b0782b69ede3e1b64e30099d17c7cfe Mon Sep 17 00:00:00 2001
+From: Thomas Epperson <thomas.epperson@gmail.com>
+Date: Fri, 29 Nov 2024 07:36:05 -0600
+Subject: [PATCH] Add ability to produce a simulation test bench.
+
+---
+ litex/build/generic_platform.py       |  49 +++++++
+ litex/build/generic_toolchain.py      |   9 ++
+ litex/gen/fhdl/verilog.py             | 180 +++++++++++++++++++++++++-
+ litex/soc/cores/clock/intel_common.py |  16 ++-
+ litex/soc/cores/clock/intel_max10.py  |   4 +-
+ 5 files changed, 251 insertions(+), 7 deletions(-)
+
+diff --git a/litex/build/generic_platform.py b/litex/build/generic_platform.py
+index 24dda751d..a1e915af6 100644
+--- a/litex/build/generic_platform.py
++++ b/litex/build/generic_platform.py
+@@ -349,6 +349,7 @@ class GenericPlatform:
+             name = os.path.splitext(os.path.basename(sys.argv[0]))[0]
+         self.name                  = name
+         self.sources               = []
++        self.testbench_sources     = []
+         self.verilog_include_paths = []
+         self.output_dir            = None
+         self.finalized             = False
+@@ -363,6 +364,12 @@ class GenericPlatform:
+ 
+     def request_all(self, *args, **kwargs):
+         return self.constraint_manager.request_all(*args, **kwargs)
++        
++    def dut_request(self, *args, **kwargs):
++        return self.constraint_manager.dut_request(*args, **kwargs)
++
++    def dut_request_all(self, *args, **kwargs):
++        return self.constraint_manager.dut_request_all(*args, **kwargs)
+ 
+     def request_remaining(self, *args, **kwargs):
+         return self.constraint_manager.request_remaining(*args, **kwargs)
+@@ -382,6 +389,23 @@ class GenericPlatform:
+                 if a is not b:
+                     self.add_false_path_constraint(a, b)
+ 
++    def prepare_testbench(self, io, connectors, unit, precision):
++        self.testbench_constraint_manager = ConstraintManager(io, connectors)
++        self.testbench_unit = unit
++        self.testbench_precision = precision
++        return self.testbench_constraint_manager
++
++    def add_testbench(self, testbench, platform, source, script, script_contents):
++        self.dut = testbench
++        self.testbench_platform = platform
++        self.testbench_source = source
++        self.testbench_script_contents = script_contents
++        self.testbench_script = script
++    
++    def get_sim_script(self):
++        print("The cwd is %s" % os.getcwd())
++        return self.testbench_script_contents(self)
++
+     def add_platform_command(self, *args, **kwargs):
+         return self.constraint_manager.add_platform_command(*args, **kwargs)
+ 
+@@ -430,6 +454,28 @@ class GenericPlatform:
+         else:
+             self.sources.append((filename, language, library))
+ 
++    def get_testbench_dut(self):
++        dut = self.constraint_manager.get_dut_manager()
++        self.testbench_ios = dut
++        return dut
++
++    def add_testbench_source(self, filename, language=None, library=None, copy=False):
++        filename = os.path.abspath(filename)
++        if language is None:
++            language = tools.language_by_filename(filename)
++        if library is None:
++            library = "work"
++        for f, *_ in self.sources:
++            if f == filename:
++                return
++        for f, *_ in self.testbench_sources:
++            if f == filename:
++                return
++        if copy:
++            self.testbench_sources.append((filename, language, library, True))
++        else:
++            self.testbench_sources.append((filename, language, library))
++
+     def add_sources(self, path, *filenames, language=None, library=None, copy=False):
+         for f in filenames:
+             self.add_source(os.path.join(path, f), language, library, copy)
+@@ -471,6 +517,9 @@ class GenericPlatform:
+     def get_verilog(self, fragment, **kwargs):
+         return verilog.convert(fragment, platform=self, **kwargs)
+ 
++    def get_testbench_verilog(self, fragment, **kwargs):
++        return verilog.convert_bench(fragment, platform=self, time_unit=self.testbench_unit, time_precision=self.testbench_precision, **kwargs)
++
+     def get_edif(self, fragment, cell_library, vendor, device, **kwargs):
+         return edif.convert(
+             fragment,
+diff --git a/litex/build/generic_toolchain.py b/litex/build/generic_toolchain.py
+index 488b92178..0ac2357be 100644
+--- a/litex/build/generic_toolchain.py
++++ b/litex/build/generic_toolchain.py
+@@ -87,6 +87,15 @@ class GenericToolchain:
+         self._vns = v_output.ns
+         v_file = build_name + ".v"
+         v_output.write(v_file)
++        
++        tb_output = platform.get_testbench_verilog(platform.dut, dutname=build_name, name=platform.testbench_source)
++        tb_file = platform.testbench_source + ".v"
++        tb_output.write(tb_file)
++        
++        sim_output = platform.get_sim_script()
++        sim_file = platform.testbench_script
++        with open(sim_file, "w") as f:
++            f.write(sim_output)
+ 
+         # Finalize toolchain (after gateware is complete)
+         self.finalize()
+diff --git a/litex/gen/fhdl/verilog.py b/litex/gen/fhdl/verilog.py
+index d8b0dad61..c61ede46c 100644
+--- a/litex/gen/fhdl/verilog.py
++++ b/litex/gen/fhdl/verilog.py
+@@ -13,6 +13,7 @@
+ # This file is Copyright (c) 2018 Robin Ole Heinemann <robin.ole.heinemann@t-online.de>
+ # SPDX-License-Identifier: BSD-2-Clause
+ 
++import copy
+ import time
+ import datetime
+ import collections
+@@ -306,11 +307,20 @@ class AssignType(IntEnum):
+ 
+ def _generate_node(ns, at, level, node, target_filter=None):
+     assert at in [item.value for item in AssignType]
++    
+     if target_filter is not None and target_filter not in list_targets(node):
+         return ""
+ 
+     # Assignment.
+     elif isinstance(node, _Assign):
++        try:
++            a = getattr(node, 'delay')
++            if a != 0:
++                delay = "#(%d) " % a
++            else:
++                delay = ""
++        except:
++            delay = ""
+         if at == AssignType.BLOCKING:
+             assignment = " = "
+         elif at == AssignType.NON_BLOCKING:
+@@ -319,7 +329,7 @@ def _generate_node(ns, at, level, node, target_filter=None):
+             assignment = " = "
+         else:
+             assignment = " <= "
+-        return _tab*level + _generate_expression(ns, node.l)[0] + assignment + _generate_expression(ns, node.r)[0] + ";\n"
++        return _tab*level + delay + _generate_expression(ns, node.l)[0] + assignment + _generate_expression(ns, node.r)[0] + ";\n"
+ 
+     # Iterable.
+     elif isinstance(node, collections.abc.Iterable):
+@@ -559,6 +569,174 @@ class DummyAttrTranslate(dict):
+     def __getitem__(self, k):
+         return (k, "true")
+ 
++def convert_bench(f, ios=set(), dutname = "dut", name="top", platform=None,
++    # Verilog parameters.
++    special_overrides = dict(),
++    attr_translate    = DummyAttrTranslate(),
++    regular_comb      = False,
++    regs_init         = True,
++    # Sim parameters.
++    time_unit      = "1ns",
++    time_precision = "1ps",
++    ):
++
++    # Build Logic.
++    # ------------
++
++    # Create ConvOutput.
++    r = ConvOutput()
++
++    # Convert to FHDL's fragments is not already done.
++    if not isinstance(f, _Fragment):
++        f = f.get_fragment()
++
++    # Verify/Create Clock Domains.
++    for cd_name in sorted(list_clock_domains(f)):
++        # Try to get Clock Domain.
++        try:
++            f.clock_domains[cd_name]
++        # If not found, raise Error.
++        except:
++            msg = f"""Unresolved clock domain {cd_name}, availables:\n"""
++            for f in f.clock_domains:
++                msg += f"- {f.name}\n"
++            raise Exception(msg)
++
++    # Lower complex slices.
++    f = lower_complex_slices(f)
++
++    # Insert resets.
++    insert_resets(f)
++
++    # Lower basics.
++    f = lower_basics(f)
++
++    # Lower specials.
++    if platform is not None:
++        for s in f.specials:
++            s.platform = platform
++    f, lowered_specials = lower_specials(special_overrides, f)
++
++    # Lower basics (for basics included in specials).
++    f = lower_basics(f)
++
++    # IOs collection (when not specified).
++    if len(ios) == 0:
++        assert platform is not None
++        ios = platform.constraint_manager.get_io_signals()
++
++    # IOs backtrace/naming.
++    for io in sorted(ios, key=lambda x: x.duid):
++        if io.name_override is None:
++            io_name = io.backtrace[-1][0]
++            if io_name:
++                io.name_override = io_name
++
++    ios_dut = platform.testbench_constraint_manager.get_io_signals()
++    for io in sorted(ios_dut, key=lambda x: x.duid):
++        if io.name_override is None:
++            io_name = io.backtrace[-1][0]
++            if io_name:
++                io.name_override = io_name
++    
++    #device under test
++    dut_params = {}
++    
++    for io in ios_dut:
++        tname = f"%s" % io.name_override
++        print("requesting %s, %s" % (io.name_override, io.backtrace))
++    for io in ios:
++        print("dut parameter %s, %s" % (io.name_override, io.backtrace))
++        match io.direction:
++            case "inout":
++                dut_params[f"io_{io.name}"] = io
++            case "output":
++                dut_params[f"o_{io.name}"] = io
++            case "input":
++                dut_params[f"i_{io.name}"] = io
++            case _:
++                msg = f"""Unhandled direction {io.direction} for signal {io.name}\n"""
++                raise Exception(msg)
++    
++    dut_ios = ios
++    ios = set()
++
++    # Build Signal Namespace.
++    # ----------------------
++    ns = build_signal_namespace(
++        signals = (
++            list_signals(f) |
++            list_special_ios(f, ins=True, outs=True, inouts=True) |
++            ios |
++            ios_dut
++        ),
++        reserved_keywords = _ieee_1800_2017_verilog_reserved_keywords
++    )
++    ns.clock_domains = f.clock_domains
++
++    # Build Verilog.
++    # --------------
++    verilog = ""
++
++    # Banner.
++    verilog += _generate_banner(
++        filename = name,
++        device   = getattr(platform, "device", "Unknown")
++    )
++
++    # Timescale.
++    verilog += _generate_timescale(
++        time_unit      = time_unit,
++        time_precision = time_precision
++    )
++
++    ios = ios_dut
++
++    # Module Definition.
++    verilog += _generate_separator("Module")
++    verilog += _generate_module(f, ios, name, ns, attr_translate)
++   
++
++    # Module Signals.
++    verilog += _generate_separator("Signals")
++    verilog += _generate_signals(f, ios, name, ns, attr_translate, regs_init)
++
++    # Combinatorial Logic.
++    verilog += _generate_separator("Combinatorial Logic")
++    if regular_comb:
++        verilog += _generate_combinatorial_logic_synth(f, ns)
++    else:
++        verilog += _generate_combinatorial_logic_sim(f, ns)
++
++    # Synchronous Logic.
++    verilog += _generate_separator("Synchronous Logic")
++    verilog += _generate_synchronous_logic(f, ns)
++
++    dut = Instance(dutname, name="dut", **dut_params)
++    dut_special = {dut}
++
++    # Specials
++    verilog += _generate_separator("Specialized Logic")
++    verilog += _generate_specials(
++        name           = name,
++        overrides      = special_overrides,
++        specials       = f.specials - lowered_specials ^ dut_special,
++        namespace      = ns,
++        add_data_file  = r.add_data_file,
++        attr_translate = attr_translate
++    )
++
++    # Module End.
++    verilog += "endmodule\n"
++
++    # Trailer.
++    verilog += _generate_trailer()
++
++    r.set_main_source(verilog)
++    r.ns = ns
++
++    return r
++
+ def convert(f, ios=set(), name="top", platform=None,
+     # Verilog parameters.
+     special_overrides = dict(),
+diff --git a/litex/soc/cores/clock/intel_common.py b/litex/soc/cores/clock/intel_common.py
+index d5ea7d012..44c518e16 100644
+--- a/litex/soc/cores/clock/intel_common.py
++++ b/litex/soc/cores/clock/intel_common.py
+@@ -27,11 +27,14 @@ def geometric_mean(vals):
+ 
+ 
+ class IntelClocking(LiteXModule):
+-    def __init__(self, vco_margin=0):
++    def __init__(self, vco_margin=0, clk_in_count=1):
+         self.vco_margin = vco_margin
+         self.reset      = Signal()
+         self.locked     = Signal()
++        self.aclkin    = Signal(clk_in_count)
++        self.clkin_counter = 0
+         self.clkin_freq = None
++        self.clkin_freqs = [500 for n in range(clk_in_count)]
+         self.vcxo_freq  = None
+         self.nclkouts   = 0
+         self.clkouts    = {}
+@@ -46,7 +49,11 @@ class IntelClocking(LiteXModule):
+             self.specials += DifferentialInput(clkin.p, clkin.n, self.clkin)
+         else:
+             raise ValueError
+-        self.clkin_freq = freq
++        if self.clkin_counter == 0:
++            self.clkin_freq = freq
++        self.comb += [self.aclkin[self.clkin_counter].eq(self.clkin)]
++        self.clkin_freqs[self.clkin_counter] = freq
++        self.clkin_counter = self.clkin_counter + 1
+         register_clkin_log(self.logger, clkin, freq)
+ 
+     def create_clkout(self, cd, freq, phase=0, margin=1e-2, with_reset=True):
+@@ -112,9 +119,8 @@ class IntelClocking(LiteXModule):
+         self.params.update(
+             p_BANDWIDTH_TYPE         = "AUTO",
+             p_COMPENSATE_CLOCK       = "CLK0",
+-            p_INCLK0_INPUT_FREQUENCY = int(1e12/self.clkin_freq),
+             p_OPERATION_MODE         = "NORMAL",
+-            i_INCLK                  = self.clkin,
++            i_INCLK                  = self.aclkin,
+             o_CLK                    = clks,
+             i_ARESET                 = 0,
+             i_CLKENA                 = 2**self.nclkouts_max - 1,
+@@ -124,6 +130,8 @@ class IntelClocking(LiteXModule):
+             i_PLLENA                 = 1,
+             o_LOCKED                 = self.locked,
+         )
++        for n in range(len(self.clkin_freqs)):
++            self.params[f"p_INCLK{n}_INPUT_FREQUENCY"] = int(1e12/self.clkin_freqs[n])
+         for n, (clk, f, p, m) in sorted(self.clkouts.items()):
+             clk_phase_ps = int((1e12/config[f"clk{n}_freq"])*config[f"clk{n}_phase"]/360)
+             self.params[f"p_CLK{n}_DIVIDE_BY"]   = config[f"clk{n}_divide"]
+diff --git a/litex/soc/cores/clock/intel_max10.py b/litex/soc/cores/clock/intel_max10.py
+index ab759a2f8..71677ae60 100644
+--- a/litex/soc/cores/clock/intel_max10.py
++++ b/litex/soc/cores/clock/intel_max10.py
+@@ -12,7 +12,7 @@ from litex.soc.cores.clock.intel_common import *
+ # Intel / Max10 ------------------------------------------------------------------------------------
+ 
+ class Max10PLL(IntelClocking):
+-    nclkouts_max   = 5
++    nclkouts_max   = 6
+     n_div_range    = (1, 512+1)
+     m_div_range    = (1, 512+1)
+     c_div_range    = (1, 512+1)
+@@ -22,7 +22,7 @@ class Max10PLL(IntelClocking):
+     def __init__(self, speedgrade="-6"):
+         self.logger = logging.getLogger("Max10PLL")
+         self.logger.info("Creating Max10PLL, {}.".format(colorer("speedgrade {}".format(speedgrade))))
+-        IntelClocking.__init__(self)
++        IntelClocking.__init__(self, clk_in_count = 2)
+         self.clko_freq_range = {
+             "-6" : (0e6, 472.5e6),
+             "-7" : (0e6, 450e6),
+-- 
+2.34.1
+
