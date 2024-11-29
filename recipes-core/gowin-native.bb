@@ -22,6 +22,8 @@ SYSROOT_DIRS_NATIVE += "${prefix}/gowin"
 
 do_install() {
 	install -d ${D}${prefix}/gowin
+	install -d ${D}${bindir}
 	cp -r ${UNPACKDIR}/* ${D}${prefix}/gowin
 	rm ${D}${prefix}/gowin/IDE/lib/libfreetype.so.6
+	ln -s -r ${D}${prefix}/gowin/IDE/bin/gw_sh ${D}${bindir}/gw_sh 
 }

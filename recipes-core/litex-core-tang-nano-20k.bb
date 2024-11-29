@@ -46,8 +46,7 @@ do_compile() {
 }
 
 do_deploy () {
-    install -Dm 0644 ${B}/build/tang_nano_20k/gateware/tang_nano_20k.sof ${DEPLOYDIR}
-    install -Dm 0644 ${B}/build/tang_nano_20k/gateware/tang_nano_20k.pof ${DEPLOYDIR}
+    install -Dm 0644 ${B}/build/sipeed_tang_nano_20k/gateware/sipeed_tang_nano_20k.fs ${DEPLOYDIR}
 }
 do_install[noexec] = "1"
 
