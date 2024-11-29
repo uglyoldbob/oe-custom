@@ -10,8 +10,9 @@ PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 DEPENDS = "glibc-locale-native"
 
 SRC_URI = "\
-	file://Gowin_V1.9.10.03_linux.tar.gz \
+	https://cdn.gowinsemi.com.cn/Gowin_V1.9.10.03_Education_linux.tar.gz \
 "
+SRC_URI[sha256sum] = "1cd0b9ce86897509b12f05bebd0ec2a7b193b7168c37d82676584e9211a6e2fa"
 
 S = "${UNPACKDIR}"
 
