@@ -41,12 +41,10 @@ do_compile[network] = "1"
 
 do_compile() {
     echo $LD_LIBRARY_PATH
-    python3 ${RECIPE_SYSROOT_NATIVE}${PYTHON_SITEPACKAGES_DIR}/uob-litex-boards/targets/sipeed_tang_nano_20k.py --build \
+    python3 ${RECIPE_SYSROOT_NATIVE}${PYTHON_SITEPACKAGES_DIR}/uob-litex-boards/targets/uob_pcie1.py --build \
     --cpu-type vexriscv --cpu-variant linux \
     --uart-baudrate=115200 \
-    --bios-console=full \
-    --with-video-terminal \
-    --with-rgb-led
+    --bios-console=full
 }
 
 do_deploy () {

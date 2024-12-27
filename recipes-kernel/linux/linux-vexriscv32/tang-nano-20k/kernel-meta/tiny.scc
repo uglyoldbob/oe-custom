@@ -1,0 +1,6 @@
+define KMACHINE tang-nano-20k
+define KTYPE tiny
+
+include ktypes/tiny
+
+kconf hardware tang-nano-20k.cfg
