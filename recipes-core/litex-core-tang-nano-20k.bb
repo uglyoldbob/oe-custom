@@ -26,6 +26,7 @@ DEPENDS += "litex-pythondata-software-compiler-rt-native"
 DEPENDS += "litex-pythondata-software-picolibc-native"
 DEPENDS += "litedram-native"
 DEPENDS += "litesdcard-native"
+DEPENDS += "litex-sdcard-native"
 DEPENDS += "gowin-native"
 DEPENDS += "litex"
 
@@ -42,10 +43,11 @@ do_compile[network] = "1"
 do_compile() {
     echo $LD_LIBRARY_PATH
     python3 ${RECIPE_SYSROOT_NATIVE}${PYTHON_SITEPACKAGES_DIR}/uob-litex-boards/targets/sipeed_tang_nano_20k.py --build \
-    --cpu-type vexriscv --cpu-variant linux \
+    --cpu-type vexriscv --cpu-variant lite \
     --uart-baudrate=115200 \
     --bios-console=full \
     --with-video-terminal \
+    --with-wb-sdcard \
     --with-rgb-led
 }
 
