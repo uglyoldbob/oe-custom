@@ -3,7 +3,7 @@ SECTION = "devel/hdl"
 LICENSE = "BSD-2-Clause"
 LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/BSD-2-Clause;md5=cb641bc04cda31daea161b1bc15da69f"
 
-FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
+FILESEXTRAPATHS:prepend := "${TOPDIR}:${THISDIR}/${PN}:"
 
 PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 
