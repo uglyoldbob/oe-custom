@@ -36,6 +36,7 @@ SECURITY_LDFLAGS = ""
 
 inherit quartus-native
 inherit radiant-native
+inherit vivado-native
 
 do_compile[network] = "1"
 

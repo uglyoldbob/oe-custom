@@ -32,15 +32,15 @@ do_generateb() {
 }
 
 python do_generate() {
-	oe_terminal("sh -c '%s/xsetup -b ConfigGen; if [ \\$? -ne 0 ]; then echo \"Command failed.\"; printf \"Press any key to continue... \"; read r; fi'" % d.getVar('WORKDIR'),
+    oe_terminal("sh -c '%s/xsetup -b ConfigGen; if [ \\$? -ne 0 ]; then echo \"Command failed.\"; printf \"Press any key to continue... \"; read r; fi'" % d.getVar('WORKDIR'),
                 d.getVar('PN') + ' Configuration', d)
-	bb.build.exec_func("do_generateb", d)
+    bb.build.exec_func("do_generateb", d)
 }
 
 addtask generate2 after do_generate before do_compile
 do_generate2[network] = "1"
 python do_generate2() {
-	oe_terminal("sh -c '%s/xsetup -b AuthTokenGen; if [ \\$? -ne 0 ]; then echo \"Command failed.\"; printf \"Press any key to continue... \"; read r; fi'" % d.getVar('WORKDIR'),
+    oe_terminal("sh -c '%s/xsetup -b AuthTokenGen; if [ \\$? -ne 0 ]; then echo \"Command failed.\"; printf \"Press any key to continue... \"; read r; fi'" % d.getVar('WORKDIR'),
                 d.getVar('PN') + ' Configuration2', d)
 }
 
@@ -59,5 +59,4 @@ do_install() {
 	install -d ${D}${prefix}/vivado
 	install -d ${D}${bindir}
 	mv ${WORKDIR}/Xilinx/* ${D}${prefix}/vivado
-#	ln -s -r ${D}${prefix}/gowin/IDE/bin/gw_sh ${D}${bindir}/gw_sh 
 }
