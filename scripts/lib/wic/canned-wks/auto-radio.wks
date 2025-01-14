@@ -1,1 +1,2 @@
-part / --source rootfs --ondisk mmcblk2 --fstype=ext4 --label root --align 4 --mkfs-extraopts "-O ^orphan_file"
+bootloader --ptable msdos
+part / --source rootfs --ondisk mmcblk0 --fstype=ext4 --label root --align 4 --mkfs-extraopts "-O ^orphan_file"

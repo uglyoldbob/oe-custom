@@ -8,7 +8,7 @@ LICENSE = "MIT"
 
 IMAGE_LINGUAS = "en-us"
 
-IMAGE_FSTYPES = "tar.gz tar.gz.enc wic wic.gz wic.zst"
+IMAGE_FSTYPES = "tar.gz tar.gz.enc wic wic.gz wic.zst wic.bmap"
 
 inherit core-image swupdate-enc
 

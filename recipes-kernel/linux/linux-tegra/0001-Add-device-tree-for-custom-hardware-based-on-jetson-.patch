@@ -3,7 +3,7 @@ From: Thomas Epperson <thomas.epperson@snapon.com>
 Date: Wed, 11 Sep 2024 08:32:41 -0500
 Subject: [PATCH] Add device tree for custom hardware based on jetson nano b01
  board.
-
+Upstream-Status: Pending
 ---
  arch/arm64/boot/dts/nvidia/xjrad.dts | 11 +++++++++++
  nvidia/arch/arm64/Kconfig            |  7 +++++++
