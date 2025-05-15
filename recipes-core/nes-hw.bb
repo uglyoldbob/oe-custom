@@ -4,8 +4,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/BSD-2-Clause;md5=cb641bc04cda31
 
 S = "${WORKDIR}/git"
 
-SRC_URI = "gitsm://github.com/uglyoldbob/old_systems.git;protocol=https \
-	file://run.tcl"
+SRC_URI = "gitsm://github.com/uglyoldbob/old_systems.git;protocol=https;branch=master"
 SRCREV = "master"
 
 inherit deploy

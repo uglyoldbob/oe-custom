@@ -9,9 +9,7 @@ PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 
 DEPENDS = "glibc-locale-native"
 
-SRC_URI = "\
-	file://qinst-lite-linux-23.1std.1-993.run \
-"
+SRC_URI += "${@bb.utils.contains('QUARTUS', 'y', 'file://qinst-lite-linux-23.1std.1-993.run', '', d)}"
 
 S = "${UNPACKDIR}"
 

@@ -9,7 +9,7 @@ inherit autotools pkgconfig update-alternatives
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}-${PV}:"
 SRCREV = "master"
-SRC_URI = "git://github.com/uglyoldbob/gumstix_progs.git;protocol=https"
+SRC_URI = "git://github.com/uglyoldbob/gumstix_progs.git;protocol=https;branch=master"
 
 REQUIRED_DISTRO_FEATURES += "x11"
 

@@ -15,7 +15,7 @@ S = "${WORKDIR}/git"
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += " \
-	git://github.com/uglyoldbob/radio.git;protocol=https \
+	git://github.com/uglyoldbob/radio.git;protocol=https;branch=master \
 "
 
 SRCREV = "5ba3bd7645adedf16a57c2f9ed1f3f44f1c16683"

@@ -9,9 +9,10 @@ PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 
 DEPENDS = "glibc-locale-native"
 
+SRC_URI += "${@bb.utils.contains('GOWIN', 'y', 'file://gwlicense.ini', '', d)}"
+
 SRC_URI = "\
 	https://cdn.gowinsemi.com.cn/Gowin_V1.9.10.03_linux.tar.gz \
-	file://gwlicense.ini \
 "
 SRC_URI[sha256sum] = "3eacbbe2e724a98a28e0b5653032a60a35e34379b093baffcfbb23e2e1a8ed65"
 

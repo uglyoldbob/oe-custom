@@ -17,7 +17,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += " \
 	file://LICENSE \
-	git://github.com/uglyoldbob/iot.git;protocol=https \
+	git://github.com/uglyoldbob/iot.git;protocol=https;branch=master \
 	git://github.com/uglyoldbob/html.git;protocol=https;name=html;branch=main;workspace=crates/html;destsuffix=cargo_home/git/html-0.6.3 \
 	git://github.com/uglyoldbob/ocsp-rs.git;protocol=https;name=ocsp;branch=master;destsuffix=cargo_home/git/ocsp-rs \
 	git://github.com/uglyoldbob/rcgen.git;protocol=https;name=rcgen;workspace=rcgen;branch=attributes;destsuffix=cargo_home/git/rcgen \

@@ -7,7 +7,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/BSD-2-Clause;md5=cb641bc04cda31
 S = "${WORKDIR}/git"
 
 inherit deploy
-inherit litexnative
+inherit litex-native
 inherit python3native
 
 # inhibit default deps, to exclude libc

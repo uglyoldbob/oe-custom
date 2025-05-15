@@ -19,7 +19,7 @@ EXTRA_OECONF = "--enable-shared --enable-static --disable-silent-rules"
 BBCLASSEXTEND = "native"
 
 SRCREV = "67fac45d54856e3817def4ef49807cf921132158"
-SRC_URI = "git://github.com/martinh/libconfuse.git"
+SRC_URI = "git://github.com/martinh/libconfuse.git;branch=master"
 
 do_configure:prepend() {
   touch ${S}/support/config.rpath

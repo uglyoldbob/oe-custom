@@ -9,9 +9,8 @@ PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 
 DEPENDS = "glibc-locale-native bzip2-native"
 
-SRC_URI = "file://lattice-radiant-license.dat \
-        file://2024.2.0.3.4_Radiant_lin.zip \
-"
+SRC_URI += "${@bb.utils.contains('LATTICE_RADIANT', 'y', 'file://lattice-radiant-license.dat', '', d)}"
+SRC_URI += "${@bb.utils.contains('LATTICE_RADIANT', 'y', 'file://2024.2.0.3.4_Radiant_lin.zip', '', d)}"
 
 SRC_URI[sha256sum] = "1cd0b9ce86897509b12f05bebd0ec2a7b193b7168c37d82676584e9211a6e2fa"
 

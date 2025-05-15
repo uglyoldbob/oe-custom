@@ -9,8 +9,7 @@ PACKAGES_DYNAMIC = "^${PN}-locale-.*"
 
 DEPENDS = "glibc-locale-native"
 
-SRC_URI = "file://FPGAs_AdaptiveSoCs_Unified_2024.2_1113_1001_Lin64.bin \
-"
+SRC_URI += "${@bb.utils.contains('VIVADO', 'y', 'file://FPGAs_AdaptiveSoCs_Unified_2024.2_1113_1001_Lin64.bin', '', d)}"
 
 SRC_URI[sha256sum] = "1cd0b9ce86897509b12f05bebd0ec2a7b193b7168c37d82676584e9211a6e2fa"
 

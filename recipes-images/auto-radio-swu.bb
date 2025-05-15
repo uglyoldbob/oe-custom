@@ -29,4 +29,3 @@ SWUPDATE_IMAGES:xjrad = " \
 # taken to be put in the compound image
 SWUPDATE_IMAGES_FSTYPES[auto-radio] = ".tar.gz.enc"
 
-COMPATIBLE_MACHINE = "xjrad"

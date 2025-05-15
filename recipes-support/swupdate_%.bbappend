@@ -4,12 +4,6 @@ addtask add_encryption_data after do_compile before do_install
 
 INSANE_SKIP:${PN} += "buildpaths"
 
-COMPATIBLE_MACHINE = "xjrad"
-COMPATIBLE_MACHINE += "de0nano"
-COMPATIBLE_MACHINE += "epia5000"
-COMPATIBLE_MACHINE += "verdex"
-COMPATIBLE_MACHINE += "xbox"
-
 SRC_URI += "file://tempdefconfig \
 	file://tempswupdate.service \
 	file://conf/signing/public.pem \
