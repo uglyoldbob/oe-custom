@@ -25,8 +25,10 @@ while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
 done
 mount
 
-mkfs.ext4 -F ${DISK}1
+mkfs.fat ${DISK}1
+
 mkfs.ext4 -F ${DISK}2
+mkfs.ext4 -F ${DISK}3
 
 while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
   echo "Trying to unmount"
@@ -36,7 +38,7 @@ while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
 done
 mount
 
-mkfs.ext4 -F ${DISK}3
+mkfs.ext4 -F ${DISK}4
 
 mkdir /var/install
 mount ${DISK}3 /var/install
@@ -49,12 +51,14 @@ if [ ! -f /etc/initial.swu ]; then
     exit 1
 fi
 
-ln -sf ${DISK}1 /dev/update
+ln -sf ${DISK}2 /dev/update
 swupdate -v -f /etc/swupdate.cfg -k /etc/swupdatepub.key -K /etc/swupdate/encryption -i /etc/initial.swu
 
-mkdir /var/sdcard
-mount ${DISK}1 /var/sdcard
+mkdir /var/boot
+mount ${DISK}1 /var/boot
+cp /boot/grubenv /var/boot/grubenv
 
+grub-install ${DISK}
 
 while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
   echo "Trying to unmount"
