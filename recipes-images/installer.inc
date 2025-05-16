@@ -10,10 +10,13 @@ IMAGE_LINGUAS = "en-us"
 
 inherit core-image
 
+DEPENDS += "grub-native"
+
 IMAGE_INSTALL += " \
 	kernel-base \
 	swupdate \
 	autoinstall \
+	grub-efi \
 "
 
 IMAGE_FSTYPES = "tar.gz wic.zst ext4"
@@ -24,6 +27,8 @@ do_rootfs_fixup() {
     install -d ${IMAGE_ROOTFS}/etc
     cp ${DEPLOY_DIR_IMAGE}/${SWU_TO_DEPLOY} ${IMAGE_ROOTFS}/etc/initial.swu
     echo "${INSTALL_DRIVE}" >> ${IMAGE_ROOTFS}/etc/initialize-mmc
+    install -d ${IMAGE_ROOTFS}/boot/EFI/BOOT/grub
+    grub-editenv ${IMAGE_ROOTFS}/boot/EFI/BOOT/grub/grubenv create
 }
 
 # Create a user account with a password

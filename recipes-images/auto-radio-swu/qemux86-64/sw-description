@@ -11,6 +11,7 @@ software =
 				type = "archive";
 				compressed = "zlib";
 				encrypted = true;
+				device = "/dev/update";
 				filesystem = "ext4";
 				preserve-attributes = true;
 				installed-directly = true;

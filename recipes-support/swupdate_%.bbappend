@@ -9,11 +9,13 @@ SRC_URI += "file://tempdefconfig \
 	file://conf/signing/public.pem \
 	file://conf/keys.conf \
 	file://swupdate.cfg \
+	file://swupdate_determine_partition.sh \
 "
 
 S = "${WORKDIR}/git"
 
 DEPENDS += " libarchive curl"
+RDEPENDS:${PN} += " bash"
 
 inherit swupdate-lib
 
@@ -42,6 +44,8 @@ do_install:append() {
 	install -m 0600 ${UNPACKDIR}/conf/signing/public.pem ${D}/etc/swupdatepub.key
 	install -m 0600 ${S}/encryption_key ${D}/etc/swupdate/encryption
 	install -m 0600 ${UNPACKDIR}/tempswupdate.service ${D}/usr/lib/systemd/system/swupdate.service
-	echo "${SWU_MACHINE_NAME}:${SWU_MACHINE_VERSION}" > ${D}/etc/swumachine
+	install -d ${D}/usr/bin
+	install -m 0555 ${UNPACKDIR}/swupdate_determine_partition.sh ${D}/usr/bin/swupdate_determine_partition.sh
+	echo "${SWU_MACHINE_NAME} ${SWU_MACHINE_VERSION}" > ${D}/etc/hwrevision
 }
 

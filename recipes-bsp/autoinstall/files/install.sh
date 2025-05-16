@@ -25,6 +25,7 @@ while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
 done
 mount
 
+mkfs.ext4 -F ${DISK}1
 mkfs.ext4 -F ${DISK}2
 
 while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
@@ -48,11 +49,8 @@ if [ ! -f /etc/initial.swu ]; then
     exit 1
 fi
 
-SWU_MACHINE=$(< /etc/swumachine)
-
-echo "Machine to install for is $SWU_MACHINE"
-
-swupdate -H $SWU_MACHINE -v -f /etc/swupdate.cfg -k /etc/swupdatepub.key -K /etc/swupdate/encryption -i /etc/initial.swu
+ln -sf ${DISK}1 /dev/update
+swupdate -v -f /etc/swupdate.cfg -k /etc/swupdatepub.key -K /etc/swupdate/encryption -i /etc/initial.swu
 
 mkdir /var/sdcard
 mount ${DISK}1 /var/sdcard

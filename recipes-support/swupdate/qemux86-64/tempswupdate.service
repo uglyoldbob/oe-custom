@@ -7,6 +7,7 @@ Documentation=https://sbabic.github.io/swupdate
 ExecStartPre=-/usr/bin/swupdate-env
 Environment=LC_CTYPE="en_US.utf8"
 EnvironmentFile=-/etc/default/swupdate
+ExecStartPre=/usr/bin/swupdate_determine_partition.sh
 ExecStart=/usr/bin/swupdate -v -H xjrad2:1.0 -f /etc/swupdate.cfg $SWUPDATE_EXTRA_ARGS -k /etc/swupdatepub.key -K /etc/swupdate/encryption -w "" -p 'reboot'
 
 [Install]
