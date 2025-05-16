@@ -42,5 +42,6 @@ do_install:append() {
 	install -m 0600 ${UNPACKDIR}/conf/signing/public.pem ${D}/etc/swupdatepub.key
 	install -m 0600 ${S}/encryption_key ${D}/etc/swupdate/encryption
 	install -m 0600 ${UNPACKDIR}/tempswupdate.service ${D}/usr/lib/systemd/system/swupdate.service
+	echo "${SWU_MACHINE_NAME}:${SWU_MACHINE_VERSION}" > ${D}/etc/swumachine
 }
 

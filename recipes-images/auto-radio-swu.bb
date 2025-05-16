@@ -21,8 +21,8 @@ IMAGE_DEPENDS = "auto-radio"
 
 # SWUPDATE_IMAGES: list of images that will be part of the compound image
 # the list can have any binaries - images must be in the DEPLOY directory
-SWUPDATE_IMAGES:xjrad = " \
-	auto-radio-xjrad.rootfs.tar.gz.enc \
+SWUPDATE_IMAGES = " \
+	auto-radio-${MACHINE}.rootfs.tar.gz.enc \
 "
 
 # Images can have multiple formats - define which image must be

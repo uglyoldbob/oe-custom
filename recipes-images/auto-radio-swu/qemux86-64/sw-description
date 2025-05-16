@@ -2,8 +2,8 @@ software =
 {
 	version = "@@PV@@";
 
-	@@MACHINE@@ = {
-		hardware-compatibility: [ "1.0" ];
+	@@SWU_MACHINE_NAME@@ = {
+		hardware-compatibility: [ "@@SWU_MACHINE_VERSION@@" ];
 
 		images: (
 			{
@@ -13,6 +13,7 @@ software =
 				encrypted = true;
 				filesystem = "ext4";
 				preserve-attributes = true;
+				installed-directly = true;
 				path = "/";
 				sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz.enc)";
 			}

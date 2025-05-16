@@ -1,4 +1,4 @@
-DESCRIPTION = "A custom image for an installation environment that boots with pxe."
+DESCRIPTION = "A custom image for an installation environment"
 LICENSE = "MIT"
 
 #IMAGE_FEATURES += "splash package-management ssh-server-openssh"
@@ -13,9 +13,18 @@ inherit core-image
 IMAGE_INSTALL += " \
 	kernel-base \
 	swupdate \
+	autoinstall \
 "
 
-IMAGE_FSTYPES = "tar.gz"
+IMAGE_FSTYPES = "tar.gz wic.zst ext4"
+
+ROOTFS_POSTPROCESS_COMMAND += "do_rootfs_fixup;"
+
+do_rootfs_fixup() {
+    install -d ${IMAGE_ROOTFS}/etc
+    cp ${DEPLOY_DIR_IMAGE}/${SWU_TO_DEPLOY} ${IMAGE_ROOTFS}/etc/initial.swu
+    echo "${INSTALL_DRIVE}" >> ${IMAGE_ROOTFS}/etc/initialize-mmc
+}
 
 # Create a user account with a password
 # this command generates a hash for the useradd command
