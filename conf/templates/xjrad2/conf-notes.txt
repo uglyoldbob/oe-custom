@@ -1,0 +1,4 @@
+Common targets are:
+    auto-radio
+    auto-radio-swu
+    usb-installer
