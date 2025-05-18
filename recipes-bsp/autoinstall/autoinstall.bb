@@ -8,8 +8,7 @@ S = "${WORKDIR}/src"
 RDEPENDS:${PN} = "bash e2fsprogs-mke2fs util-linux"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
-SRC_URI += "file://license \
-	file://install.sh \
+SRC_URI += "file://install.sh \
 	file://autoinstall.service \
 	file://partitions_mmc \
 "
