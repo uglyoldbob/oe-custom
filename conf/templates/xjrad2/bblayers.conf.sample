@@ -5,13 +5,13 @@ LCONF_VERSION = "6"
 BBPATH = "${TOPDIR}"
 BBFILES ?= ""
 BBLAYERS ?= " \
-  ##OECORE##/meta \
-  ##OECORE##/meta-yocto \
-  ##OECORE##/meta-openembedded/meta-oe \
-  ##OECORE##/meta-openembedded/meta-systemd \
-  ##OECORE##/meta-openembedded/meta-networking \
-  ##OECORE##/meta-openembedded/meta-multimedia \
-  ##OECORE##/meta-openembedded/meta-python \
-  ##OECORE##/meta-uglyoldbob \
+  ##OEROOT##/meta \
+  ##OEROOT##/meta-yocto \
+  ##OEROOT##/meta-openembedded/meta-oe \
+  ##OEROOT##/meta-openembedded/meta-systemd \
+  ##OEROOT##/meta-openembedded/meta-networking \
+  ##OEROOT##/meta-openembedded/meta-multimedia \
+  ##OEROOT##/meta-openembedded/meta-python \
+  ##OEROOT##/meta-uglyoldbob \
   "
 
