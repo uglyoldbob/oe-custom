@@ -5,7 +5,7 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/MIT;md5=0835ad
 
 inherit cargo-update-recipe-crates cargo pkgconfig
 
-DEPENDS = "libdbus-c++"
+DEPENDS = "libdbus-c++ bindgen-cli clang alsa-lib protobuf protobuf-native"
 
 #pull in generated crate info
 include ${BPN}-crates.inc
@@ -15,7 +15,9 @@ S = "${WORKDIR}/git"
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += " \
-	git://github.com/uglyoldbob/radio.git;protocol=https;branch=master \
+	gitsm://github.com/uglyoldbob/radio.git;protocol=https;branch=master \
 "
+SRCREV = "${AUTOREV}"
 
-SRCREV = "5ba3bd7645adedf16a57c2f9ed1f3f44f1c16683"
+SRC_URI[android-auto-0.1.0.sha256sum] = "7ddcd902db329bc2f91abb9dd62aa7219c7949f3edc4ecc26424bf111de58394"
+SRC_URI[bluetooth-rust-0.1.0.sha256sum] = "d902a85a6a6350272f3211f2aaae918b47fb99ce947e5ef5e3cb05a9e8279619"
