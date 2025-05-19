@@ -17,7 +17,7 @@ IMAGE_INSTALL += " \
 	swupdate \
 	autoinstall \
 	grub \
-	efibootmgr \
+	bootconf \
 "
 
 IMAGE_FSTYPES = "tar.gz wic.zst ext4"

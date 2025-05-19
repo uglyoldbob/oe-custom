@@ -297,3 +297,5 @@ SWUPDATE_PRIVATE_KEY = "${BUILDDIR}/conf/signing/priv.pem"
 
 SWU_MACHINE_NAME = "xjrad2"
 SWU_MACHINE_VERSION = "1.0"
+
+PREFERRED_PROVIDER_virtual/bootconf = "grub-nonefi-bootconf"
