@@ -72,7 +72,7 @@ mount
 
 mkdir /var/boot
 mount ${DISK}1 /var/boot
-cp /boot/grubenv /var/boot/grubenv
+cp /boot/grubenv /var/boot/grub/grubenv
 
 mkdir /tmp/t
 mount ${DISK}2 /tmp/t
@@ -81,6 +81,7 @@ mount ${DISK}1 /tmp/s
 grub-install --boot-directory=/tmp/s --modules part_msdos ${DISK}
 mkdir -p /tmp/s/grub
 cp /usr/share/grub.cfg /tmp/s/grub/grub.cfg
+grub-editenv /tmp/s/grub/grubenv set bootpart=2
 umount /tmp/s
 umount /tmp/t
 
