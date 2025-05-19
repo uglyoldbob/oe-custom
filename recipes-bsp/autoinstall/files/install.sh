@@ -72,7 +72,7 @@ mount
 
 mkdir /var/boot
 mount ${DISK}1 /var/boot
-cp /boot/grubenv /var/boot/grub/grubenv
+cp /boot/grub/grubenv /var/boot/grub/grubenv
 
 mkdir /tmp/t
 mount ${DISK}2 /tmp/t

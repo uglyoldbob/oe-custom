@@ -28,8 +28,8 @@ do_rootfs_fixup() {
     install -d ${IMAGE_ROOTFS}/etc
     cp ${DEPLOY_DIR_IMAGE}/${SWU_TO_DEPLOY} ${IMAGE_ROOTFS}/etc/initial.swu
     echo "${INSTALL_DRIVE}" >> ${IMAGE_ROOTFS}/etc/initialize-mmc
-    install -d ${IMAGE_ROOTFS}/boot/EFI/BOOT/grub
-    grub-editenv ${IMAGE_ROOTFS}/boot/grubenv create
+    install -d ${IMAGE_ROOTFS}/boot/grub
+    grub-editenv ${IMAGE_ROOTFS}/boot/grub/grubenv create
 }
 
 # Create a user account with a password
