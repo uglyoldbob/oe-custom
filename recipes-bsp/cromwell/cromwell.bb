@@ -24,7 +24,7 @@ do_compile () {
        make
 }
 
-SRCREV="716422416e51c00634508dc9ea6d365a6b1b9a9f"
+SRCREV = "716422416e51c00634508dc9ea6d365a6b1b9a9f"
 SRC_URI = "git://github.com/XboxDev/cromwell.git;protocol=https;branch=master"
 
 do_deploy() {

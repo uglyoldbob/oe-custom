@@ -16,7 +16,7 @@ IMAGE_INSTALL += " \
 	kernel-base \
 	swupdate \
 	autoinstall \
-	grub \
+	${BOOTLOADER_PACKAGE} \
 	bootconf \
 "
 
