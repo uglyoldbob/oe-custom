@@ -291,10 +291,6 @@ CONF_VERSION = "2"
 MACHINE = "qemux86-64"
 DISTRO = "uobauto"
 
-SWUPDATE_PASSWORD_FILE = "${BUILDDIR}/conf/signing/pass"
-SWUPDATE_AES_FILE = "${BUILDDIR}/conf/keys.conf"
-SWUPDATE_PRIVATE_KEY = "${BUILDDIR}/conf/signing/priv.pem"
-
 SWU_MACHINE_NAME = "xjrad2"
 SWU_MACHINE_VERSION = "1.0"
 
