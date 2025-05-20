@@ -5,11 +5,10 @@ addtask add_encryption_data after do_compile before do_install
 INSANE_SKIP:${PN} += "buildpaths"
 
 SRC_URI += "file://tempdefconfig \
-	file://tempswupdate.service \
 	file://conf/signing/public.pem \
 	file://conf/keys.conf \
 	file://swupdate.cfg \
-	file://swupdate_determine_partition.sh \
+	file://09-swupdate-args \
 "
 
 S = "${WORKDIR}/git"
@@ -43,9 +42,9 @@ do_install:append() {
 	install -m 0600 ${UNPACKDIR}/swupdate.cfg ${D}/etc/swupdate.cfg
 	install -m 0600 ${UNPACKDIR}/conf/signing/public.pem ${D}/etc/swupdatepub.key
 	install -m 0600 ${S}/encryption_key ${D}/etc/swupdate/encryption
-	install -m 0600 ${UNPACKDIR}/tempswupdate.service ${D}/usr/lib/systemd/system/swupdate.service
 	install -d ${D}/usr/bin
-	install -m 0555 ${UNPACKDIR}/swupdate_determine_partition.sh ${D}/usr/bin/swupdate_determine_partition.sh
 	echo "${SWU_MACHINE_NAME} ${SWU_MACHINE_VERSION}" > ${D}/etc/hwrevision
+	install -m 0644 ${UNPACKDIR}/09-swupdate-args ${D}${libdir}/swupdate/conf.d/
+	sed -i "s#@MACHINE@#${MACHINE}#g" ${D}${libdir}/swupdate/conf.d/09-swupdate-args
 }
 

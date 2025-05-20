@@ -58,7 +58,7 @@ if [ ! -f /etc/initial.swu ]; then
 fi
 
 ln -sf ${DISK}2 /dev/update
-swupdate -v -f /etc/swupdate.cfg -k /etc/swupdatepub.key -K /etc/swupdate/encryption -i /etc/initial.swu
+swupdate -v -e stable,copy1 -f /etc/swupdate.cfg -k /etc/swupdatepub.key -K /etc/swupdate/encryption -i /etc/initial.swu -p ""
 
 while [[ `mount | grep ${DISK} | wc -l` -gt 0 ]]; do
   echo "Trying to unmount 4"

@@ -1,0 +1,22 @@
+rootfs=`swupdate -g`
+
+if [ $rootfs == '/dev/sda2' ];then
+	selection="-e stable,copy2"
+else
+	selection="-e stable,copy1"
+fi
+
+state=`fw_printenv ustate | cut -f 2 -d'='`
+if [ -z "$state" ];then
+	fw_setenv ustate 1
+	state=`fw_printenv ustate | cut -f 2 -d'='`
+fi
+if [ $state == 1 ];then
+	SWUPDATE_SURICATTA_ARGS="-c 2"
+else
+	SWUPDATE_SURICATTA_ARGS=" "
+fi
+
+CFGFILE="/etc/swupdate.cfg"
+
+SWUPDATE_ARGS="${selection} -p 'reboot' -f ${CFGFILE}"
