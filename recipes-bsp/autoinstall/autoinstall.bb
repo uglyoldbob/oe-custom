@@ -5,7 +5,7 @@ LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda
 
 S = "${WORKDIR}/src"
 
-RDEPENDS:${PN} = "bash e2fsprogs-mke2fs util-linux"
+RDEPENDS:${PN} = "bash e2fsprogs-mke2fs dosfstools util-linux"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI += "file://install.sh \

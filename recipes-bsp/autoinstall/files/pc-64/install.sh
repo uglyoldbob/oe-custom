@@ -79,7 +79,7 @@ mkdir /tmp/t
 mount ${DISK}2 /tmp/t
 mkdir /tmp/s
 mount ${DISK}1 /tmp/s
-grub-install --boot-directory=/tmp/s --modules part_msdos --target x86_64-efi --efi-directory=/tmp/s ${DISK}
+grub-install --boot-directory=/tmp/s --removable --target x86_64-efi --efi-directory=/tmp/s ${DISK}
 mkdir -p /tmp/s/grub
 cp /usr/share/grub.cfg /tmp/s/grub/grub.cfg
 grub-editenv /tmp/s/grub/grubenv set bootpart=2
