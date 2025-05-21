@@ -18,6 +18,6 @@ do_install:prepend() {
     mkdir -p ${D}/${nonarch_base_libdir}/modules/${KERNEL_VERSION}/kernel/drivers/net/wireless
 }
 
-FILES:${PN} += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/kernel/drivers/net/wireless/8821ce.ko"
+#FILES:${PN} += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/kernel/drivers/net/wireless/8821ce.ko"
 
-RPROVIDES:${PN} += "kernel-module-rtl8821"
+RPROVIDES:${PN} += "kernel-module-8821ce"
