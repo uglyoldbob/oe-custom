@@ -77,16 +77,19 @@ cp /boot/grub/grubenv /var/boot/grub/grubenv
 
 mkdir /tmp/t
 mount ${DISK}2 /tmp/t
-mkdir /tmp/s
-mount ${DISK}1 /tmp/s
-grub-install --boot-directory=/tmp/s --removable --target x86_64-efi --efi-directory=/tmp/s ${DISK}
+grub-install --boot-directory=/var/boot --target x86_64-efi --efi-directory=/var/boot ${DISK}
+RET="$?"
+if [ $RET -ne 0 ]; then
+	grub-install --boot-directory=/var/boot --removable --target x86_64-efi --efi-directory=/var/boot ${DISK}
+fi
+
 mkdir -p /tmp/s/grub
 cp /usr/share/grub.cfg /tmp/s/grub/grub.cfg
 grub-editenv /tmp/s/grub/grubenv set bootpart=2
-umount /tmp/s
+umount /var/boot
 umount /tmp/t
 
-rm -rf /tmp/s
+rm -rf /var/boot
 rm -rf /tmp/t
 
 hwclock -f /dev/rtc1 --set --date "2025-03-01"
