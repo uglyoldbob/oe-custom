@@ -1,0 +1,10 @@
+[Unit]
+Description=Radio background service
+Documentation=https://github.com/uglyoldbob/radio
+
+[Service]
+Type=simple
+ExecStart=/bin/radio_service
+
+[Install]
+WantedBy=multi-user.target

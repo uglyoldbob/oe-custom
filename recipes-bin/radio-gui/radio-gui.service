@@ -1,0 +1,15 @@
+[Unit]
+Description=Radio gui
+Documentation=https://github.com/uglyoldbob/radio
+
+[Service]
+Type=simple
+User=weston
+ExecStart=/bin/radio_gui
+Environment="DISPLAY=:0"
+Environment="WAYLAND_DISPLAY=/run/wayland-0"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Restart=always
+
+[Install]
+WantedBy=graphical.target
