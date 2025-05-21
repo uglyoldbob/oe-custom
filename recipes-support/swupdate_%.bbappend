@@ -9,6 +9,7 @@ SRC_URI += "file://tempdefconfig \
 	file://conf/keys.conf \
 	file://swupdate.cfg \
 	file://09-swupdate-args \
+	file://swupdate.service \
 "
 
 S = "${WORKDIR}/git"
