@@ -47,6 +47,7 @@ IMAGE_INSTALL += " \
 	pulseaudio-server \
 	pulseaudio-lib-alsa-util \
 	bluealsa \
+	networkmanager \
 "
 
 #alsaloop -C bluealsa:DEV=(address),PROFILE=a2dp -P plughw:0,3 -r 32000 -c 2 -f S16_LE --sync=simple -t 50000 -T 1
