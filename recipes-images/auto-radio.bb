@@ -19,6 +19,7 @@ SRC_URI += "file://conf/keys.conf"
 IMAGE_FEATURES += "${@bb.utils.contains('DISTRO_FEATURES', 'wayland', 'weston', \
        bb.utils.contains('DISTRO_FEATURES',     'x11', 'x11-base x11-sato', \
                                                        '', d), d)} \
+	overlayfs-etc \
 "
 
 IMAGE_INSTALL += " \

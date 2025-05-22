@@ -10,17 +10,17 @@ RDEPENDS:${PN} = "bash overlayfs-create-dirs"
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 do_install() {
-	install -d ${D}/home/root/.ssh
+	install -d ${D}/root/.ssh
 	if [[ -r ${TOPDIR}/conf/ssh.pub ]]; then
 	    echo "Installing ssh key"
-	    cat ${TOPDIR}/conf/ssh.pub >> ${D}/home/root/.ssh/authorized_keys
-	    chmod 0600 ${D}/home/root/.ssh/authorized_keys
+	    cat ${TOPDIR}/conf/ssh.pub >> ${D}/root/.ssh/authorized_keys
+	    chmod 0600 ${D}/root/.ssh/authorized_keys
 	fi
 }
 
-FILES:${PN} += "/home/root/.ssh /home/root/.ssh/authorized_keys"
+FILES:${PN} += "/root/.ssh /root/.ssh/authorized_keys"
 
 inherit overlayfs
 
 DISTRO_FEATURES:append = " overlayfs"
-OVERLAYFS_WRITABLE_PATHS[homessh] += "/home/root/.ssh"
+OVERLAYFS_WRITABLE_PATHS[homessh] += "/root/.ssh"
