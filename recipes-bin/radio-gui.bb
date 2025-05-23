@@ -24,6 +24,10 @@ SRCREV = "${AUTOREV}"
 SRC_URI[android-auto-0.1.0.sha256sum] = "7ddcd902db329bc2f91abb9dd62aa7219c7949f3edc4ecc26424bf111de58394"
 SRC_URI[bluetooth-rust-0.1.0.sha256sum] = "d902a85a6a6350272f3211f2aaae918b47fb99ce947e5ef5e3cb05a9e8279619"
 
+do_compile:prepend() {
+	export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/20/include
+}
+
 do_install:append() {
 	install -d ${D}/etc/systemd/system/multi-user.target.wants
 	install -d ${D}/etc/systemd/system
