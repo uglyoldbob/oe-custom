@@ -1,7 +1,7 @@
 [Unit]
 Description=Radio background service
 Documentation=https://github.com/uglyoldbob/radio
-After=network-online.target
+After=NetworkManager.service
 
 [Service]
 Type=simple
