@@ -7,6 +7,16 @@ software =
 
 		stable : {
 			copy1 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/sda2";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
 				images: (
 					{
 						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz.enc";
@@ -33,6 +43,16 @@ software =
 				);
 			};
 			copy2 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/sda3";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
 				images: (
 					{
 						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz.enc";

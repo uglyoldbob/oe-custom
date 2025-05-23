@@ -1,9 +1,9 @@
 rootfs=`swupdate -g`
 
 if [ $rootfs == '/dev/sda2' ];then
-	selection="-e stable,copy2 -P \"mkfs.ext4 -F /dev/sda3\""
+	selection="-e stable,copy2"
 else
-	selection="-e stable,copy1 -P \"mkfs.ext4 -F /dev/sda2\""
+	selection="-e stable,copy1"
 fi
 
 CFGFILE="/etc/swupdate.cfg"
