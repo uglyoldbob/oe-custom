@@ -22,12 +22,14 @@ IMAGE_INSTALL += " \
 
 IMAGE_FSTYPES = "tar.gz wic.zst ext4"
 
-ROOTFS_POSTPROCESS_COMMAND += "do_rootfs_fixup;"
+ROOTFS_POSTPROCESS_COMMAND += "; do_rootfs_fixup;"
 
 do_rootfs_fixup() {
     install -d ${IMAGE_ROOTFS}/etc
     cp ${DEPLOY_DIR_IMAGE}/${SWU_TO_DEPLOY} ${IMAGE_ROOTFS}/etc/initial.swu
     echo "${INSTALL_DRIVE}" >> ${IMAGE_ROOTFS}/etc/initialize-mmc
+    sed -i '/boot/d' ${IMAGE_ROOTFS}/etc/fstab
+    sed -i '/data/d' ${IMAGE_ROOTFS}/etc/fstab
     install -d ${IMAGE_ROOTFS}/boot/grub
     grub-editenv ${IMAGE_ROOTFS}/boot/grub/grubenv create
 }

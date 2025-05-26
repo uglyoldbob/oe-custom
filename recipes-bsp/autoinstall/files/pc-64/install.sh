@@ -74,19 +74,24 @@ mkdir /var/boot
 mount ${DISK}1 /var/boot
 mkdir /var/boot/grub
 cp /boot/grub/grubenv /var/boot/grub/grubenv
+umount /var/boot
+mount ${DISK}1 /boot
+
+modprobe efivarfs
+mount -t efivarfs none /sys/firmware/efi/efivars
 
 mkdir /tmp/t
 mount ${DISK}2 /tmp/t
-grub-install --boot-directory=/var/boot --target x86_64-efi --efi-directory=/var/boot ${DISK}
+grub-install --boot-directory=/boot --target x86_64-efi --efi-directory=/boot ${DISK}
 RET="$?"
 if [ $RET -ne 0 ]; then
-	grub-install --boot-directory=/var/boot --removable --target x86_64-efi --efi-directory=/var/boot ${DISK}
+	grub-install --boot-directory=/boot --removable --target x86_64-efi --efi-directory=/boot ${DISK}
 fi
 
 mkdir -p /tmp/s/grub
 cp /usr/share/grub.cfg /tmp/s/grub/grub.cfg
 grub-editenv /tmp/s/grub/grubenv set bootpart=2
-umount /var/boot
+umount /boot
 umount /tmp/t
 
 rm -rf /var/boot
