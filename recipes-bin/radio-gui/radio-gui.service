@@ -1,6 +1,7 @@
 [Unit]
 Description=Radio gui
 Documentation=https://github.com/uglyoldbob/radio
+After=radio.service
 
 [Service]
 Type=simple
