@@ -47,8 +47,11 @@ IMAGE_INSTALL += " \
 	pulseaudio-module-virtual-sink \
 	pulseaudio-server \
 	pulseaudio-lib-alsa-util \
+	pulseaudio \
+	jack-server \
 	bluealsa \
 	networkmanager \
+	bluetooth-nonvolatile \
 "
 
 #alsaloop -C bluealsa:DEV=(address),PROFILE=a2dp -P plughw:0,3 -r 32000 -c 2 -f S16_LE --sync=simple -t 50000 -T 1
@@ -60,6 +63,7 @@ IMAGE_INSTALL += " \
 inherit extrausers
 EXTRA_USERS_PARAMS = " \
     useradd -p '$5$SbHarFQFMohIwIjP$4KaSsQDCraqEGzJewZk.2BYBzpVhxdx4EX/omngxF35' -G sudo xbox; \
+    usermod -a -G audio weston; \
 "
 
 
