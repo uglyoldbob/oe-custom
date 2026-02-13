@@ -32,7 +32,7 @@ do_compile:prepend() {
 			export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/20/include
 			;;
 		"scarthgap")
-			export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/18/include
+			export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/include
 			;;
 		*)
 			bberror "Unexpected distro: ${DISTRO_CODENAME}"
