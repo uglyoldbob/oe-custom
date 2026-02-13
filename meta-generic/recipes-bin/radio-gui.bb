@@ -10,7 +10,9 @@ DEPENDS = "libdbus-c++ bindgen-cli clang alsa-lib protobuf protobuf-native"
 #pull in generated crate info
 include ${BPN}-crates.inc
 
-S = "${WORKDIR}/git"
+UNPACKDIR ??= "${WORKDIR}"
+
+S = "${UNPACKDIR}/git"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
@@ -25,7 +27,17 @@ SRC_URI[android-auto-0.1.0.sha256sum] = "7ddcd902db329bc2f91abb9dd62aa7219c7949f
 SRC_URI[bluetooth-rust-0.1.0.sha256sum] = "d902a85a6a6350272f3211f2aaae918b47fb99ce947e5ef5e3cb05a9e8279619"
 
 do_compile:prepend() {
-	export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/20/include
+	case ${DISTRO_CODENAME} in
+		"walnascar")
+			export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/20/include
+			;;
+		"scarthgap")
+			export BINDGEN_EXTRA_CLANG_ARGS=-I${RECIPE_SYSROOT}/usr/lib/clang/18/include
+			;;
+		*)
+			bberror "Unexpected distro: ${DISTRO_CODENAME}"
+			;;
+	esac
 }
 
 do_install:append() {
