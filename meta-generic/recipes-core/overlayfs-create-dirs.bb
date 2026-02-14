@@ -3,10 +3,13 @@ DESCRIPTION = "Depend on this recipe to get the overlayfs-create-dirs.sh script"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
 
-S = "${WORKDIR}/src"
+UNPACKDIR ??= "${WORKDIR}"
+
+S = "${UNPACKDIR}/src"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI += "file://overlayfs-create-dirs.sh"
+
 
 do_install:append() {
 	install -d ${D}/usr/sbin
