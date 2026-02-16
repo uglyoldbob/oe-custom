@@ -1,0 +1,504 @@
+From 830bac3e2c04286d79bcf6c35d69a29ae3b96d5e Mon Sep 17 00:00:00 2001
+From: Thomas Epperson <thomas.epperson@gmail.com>
+Date: Mon, 16 Feb 2026 11:42:49 -0600
+Subject: [PATCH] Add multi-env support
+
+---
+ cmd/fs.c         |  16 +++++
+ env/Kconfig      |   7 ++
+ env/common.c     | 167 +++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ext4/ext4fs.c |  30 +++++++++
+ fs/fs.c          |  53 +++++++++++++++
+ include/env.h    |  12 ++++
+ include/ext4fs.h |   1 +
+ include/fs.h     |   6 ++
+ 8 files changed, 292 insertions(+)
+
+diff --git a/cmd/fs.c b/cmd/fs.c
+index 46cb43dcdb5..75e5067e074 100644
+--- a/cmd/fs.c
++++ b/cmd/fs.c
+@@ -72,6 +72,22 @@ U_BOOT_CMD(
+ 	"      device type 'interface' instance 'dev'."
+ );
+ 
++static int do_stat_wrapper(struct cmd_tbl *cmdtp, int flag, int argc,
++			 char *const argv[])
++{
++	__le32 mtime;
++	return do_stat(cmdtp, flag, argc, argv, FS_TYPE_ANY, &mtime);
++}
++
++
++U_BOOT_CMD(
++	stat, 4, 1, do_stat_wrapper,
++	"get modified time of specified file",
++	"<interface> <dev[:part]> filename\n"
++	"    - Get the modified time in seconds of file filename on partition part\n"
++	"      device type 'interface' instance 'dev'."
++);
++
+ static int do_ln_wrapper(struct cmd_tbl *cmdtp, int flag, int argc,
+ 			 char *const argv[])
+ {
+diff --git a/env/Kconfig b/env/Kconfig
+index 1e728c68dc1..4984d896731 100644
+--- a/env/Kconfig
++++ b/env/Kconfig
+@@ -770,6 +770,13 @@ config ENV_ACCESS_IGNORE_FORCE
+ 	  If defined, don't allow the -f switch to env set override variable
+ 	  access flags.
+ 
++config ENV_DUAL_BOOT_ENVIRONMENT
++	bool "Dual boot environment load"
++	help
++	  If defined, the newest modified environment from environment variables interface and envpartitions
++	  will be loaded and imported into the environment. This helps support configurations with more than
++	  one bootable partition.
++
+ if SPL_ENV_SUPPORT
+ config SPL_ENV_IS_NOWHERE
+ 	bool "SPL Environment is not stored"
+diff --git a/env/common.c b/env/common.c
+index 48a565107c1..e60537ff941 100644
+--- a/env/common.c
++++ b/env/common.c
+@@ -12,6 +12,9 @@
+ #include <command.h>
+ #include <env.h>
+ #include <env_internal.h>
++#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++#include <fs.h>
++#endif
+ #include <log.h>
+ #include <sort.h>
+ #include <asm/global_data.h>
+@@ -23,6 +26,10 @@
+ #include <u-boot/crc.h>
+ #include <dm/ofnode.h>
+ #include <net.h>
++#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++#include <part.h>
++#include <rtc.h>
++#endif
+ #include <watchdog.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+@@ -409,6 +416,24 @@ int env_set_default_vars(int nvars, char * const vars[], int flags)
+ 				flags, 0, nvars, vars);
+ }
+ 
++/*
++ * Check if CRC is valid. Return 0 if CRC is valid
++ */
++int env_check(const char *buf)
++{
++	env_t *ep = (env_t *)buf;
++	uint32_t crc;
++
++	memcpy(&crc, &ep->crc, sizeof(crc));
++
++	if (crc32(0, ep->data, ENV_SIZE) != crc) {
++		return 1;
++	}
++	else {
++		return 0;
++	}
++}
++
+ /*
+  * Check if CRC is valid and (if yes) import the environment.
+  * Note that "buf" may or may not be aligned.
+@@ -542,6 +567,144 @@ int env_export(env_t *env_out)
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++int compare_rtc_times(struct rtc_time *left, struct rtc_time *right)
++{
++	if (left->tm_year > right->tm_year) {
++		return 1;
++	}
++	else if (left->tm_year < right->tm_year){
++		return 0;
++	}
++	else {
++		//same year
++		if (left->tm_yday > right->tm_yday) {
++			return 1;
++		}
++		else if (left->tm_yday < right->tm_yday) {
++			return 0;
++		}
++		else {
++			//same day
++			if (left->tm_hour > right->tm_hour) {
++				return 1;
++			}
++			else if (left->tm_hour < right->tm_hour) {
++				return 0;
++			}
++			else {
++				//same hour
++				if (left->tm_min > right->tm_min) {
++					return 1;
++				}
++				else if (left->tm_min < right->tm_min) {
++					return 0;
++				}
++				else {
++					//same minute
++					if (left->tm_sec >= right->tm_sec) {
++						return 1;
++					}
++					else
++					{
++						return 0;
++					}
++				}
++			}
++		}
++	}
++}
++
++void env_load_newest_from_fs()
++{
++	int ret;
++	struct blk_desc *fs_dev_desc;
++	struct disk_partition fs_partition;
++	struct fs_dir_stream *dir;
++	__le32 newest_time = 0;
++	char *newest_partition;
++	loff_t current_size, newest_size;
++	char *interface;
++	char *partitions;
++	char *real_partitions;
++	char *partition;
++	char *buffer = NULL;
++	char *new_buffer;
++	loff_t length;
++	char *args[3];
++	char *rootdir = "/environment";
++	__le32 mtime;
++
++	newest_partition = NULL;
++	
++	interface = env_get("interface");
++	//temporary usage of partition in order to make a copy of the environment variable
++	partition = env_get("envpartitions");
++	length = strlen(partition);
++	
++	partitions = malloc(length + 1);
++	real_partitions = partitions;
++	strcpy(partitions, partition);
++	partition = NULL;
++	if (interface != 0) {
++		while( (partition = strsep(&partitions,",")) != NULL )
++		{
++			printf("Check %s\n", partition);
++			args[1] = interface;
++			args[2] = partition;
++			args[3] = rootdir;
++			ret = fs_set_blk_dev(interface, partition, 0);
++			if (ret != 0) {
++				break;
++			}
++			ret = fs_stat(rootdir, &mtime);
++			if (ret != 0) {
++				break;
++			}
++			ret = fs_set_blk_dev(interface, partition, 0);
++			if (ret != 0) {
++				break;
++			}
++			ret = fs_size(rootdir, &current_size);
++			if (ret != 0) {
++				break;
++			}
++			if (mtime > newest_time) {
++				loff_t amount = 0;
++				new_buffer = malloc(current_size);
++				ret = fs_set_blk_dev(interface, partition, 0);
++				ret = fs_read("/environment", (ulong)new_buffer, 0, current_size, &amount);
++				if (ret == 0) {
++					//check for valid environment data in new_buffer
++					if (env_check(new_buffer) == 0) {
++						newest_time = mtime;
++						newest_partition = partition;
++						newest_size = current_size;
++						if (buffer != NULL) {
++							free(buffer);
++						}
++						buffer = new_buffer;
++					}
++				}
++				else {
++					free(new_buffer);
++				}
++			}
++		}
++	}
++
++	if (ret != 0) {
++		free(real_partitions);
++		return;
++	}
++	if (buffer != NULL) {
++		printf("Load from %s\n", newest_partition);
++		env_import(buffer, 0, H_NOCLEAR | H_EXTERNAL);
++	}
++	free(real_partitions);
++}
++#endif
++
+ void env_relocate(void)
+ {
+ 	if (gd->env_valid == ENV_INVALID) {
+@@ -555,6 +718,10 @@ void env_relocate(void)
+ 	} else {
+ 		env_load();
+ 	}
++	#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++	printf("Trying to load multi boot environment\n");
++	env_load_newest_from_fs();
++	#endif
+ }
+ 
+ #ifdef CONFIG_AUTO_COMPLETE
+diff --git a/fs/ext4/ext4fs.c b/fs/ext4/ext4fs.c
+index 3b12ec54fa2..b415f9ae940 100644
+--- a/fs/ext4/ext4fs.c
++++ b/fs/ext4/ext4fs.c
+@@ -206,6 +206,36 @@ int ext4fs_ls(const char *dirname)
+ 	return 0;
+ }
+ 
++int ext4fs_stat(const char *filename, __le32 *mtime)
++{
++	struct ext2fs_node *fdiro = NULL;
++	int status;
++
++	if (ext4fs_root == NULL)
++		return -1;
++
++	ext4fs_file = NULL;
++	status = ext4fs_find_file(filename, &ext4fs_root->diropen, &fdiro,
++				  FILETYPE_REG);
++	if (status == 0)
++		goto fail;
++
++	if (!fdiro->inode_read) {
++		status = ext4fs_read_inode(fdiro->data, fdiro->ino,
++				&fdiro->inode);
++		if (status == 0)
++			goto fail;
++	}
++	*mtime = le32_to_cpu(fdiro->inode.mtime);
++	ext4fs_file = fdiro;
++
++	return 0;
++fail:
++	ext4fs_free_node(fdiro, &ext4fs_root->diropen);
++
++	return -1;
++}
++
+ int ext4fs_exists(const char *filename)
+ {
+ 	loff_t file_len;
+diff --git a/fs/fs.c b/fs/fs.c
+index acf465bdd80..95a227bc28b 100644
+--- a/fs/fs.c
++++ b/fs/fs.c
+@@ -88,6 +88,11 @@ static int fs_ls_generic(const char *dirname)
+ 	return 0;
+ }
+ 
++static int fs_stat_unsupported(const char *filename, __le32 *mtime)
++{
++	return -1;
++}
++
+ static inline int fs_exists_unsupported(const char *filename)
+ {
+ 	return 0;
+@@ -157,6 +162,7 @@ struct fstype_info {
+ 	int (*probe)(struct blk_desc *fs_dev_desc,
+ 		     struct disk_partition *fs_partition);
+ 	int (*ls)(const char *dirname);
++	int (*stat)(const char *filename, __le32 *time);
+ 	int (*exists)(const char *filename);
+ 	int (*size)(const char *filename, loff_t *size);
+ 	int (*read)(const char *filename, void *buf, loff_t offset,
+@@ -193,6 +199,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = fat_set_blk_dev,
+ 		.close = fat_close,
+ 		.ls = fs_ls_generic,
++		.stat = fs_stat_unsupported,
+ 		.exists = fat_exists,
+ 		.size = fat_size,
+ 		.read = fat_read_file,
+@@ -221,6 +228,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = ext4fs_probe,
+ 		.close = ext4fs_close,
+ 		.ls = ext4fs_ls,
++		.stat = ext4fs_stat,
+ 		.exists = ext4fs_exists,
+ 		.size = ext4fs_size,
+ 		.read = ext4_read_file,
+@@ -245,6 +253,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = sandbox_fs_set_blk_dev,
+ 		.close = sandbox_fs_close,
+ 		.ls = sandbox_fs_ls,
++		.stat = sandbox_fs_stat,
+ 		.exists = sandbox_fs_exists,
+ 		.size = sandbox_fs_size,
+ 		.read = fs_read_sandbox,
+@@ -284,6 +293,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = ubifs_set_blk_dev,
+ 		.close = ubifs_close,
+ 		.ls = ubifs_ls,
++		.stat = ubifs_stat,
+ 		.exists = ubifs_exists,
+ 		.size = ubifs_size,
+ 		.read = ubifs_read,
+@@ -305,6 +315,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = btrfs_probe,
+ 		.close = btrfs_close,
+ 		.ls = btrfs_ls,
++		.stat = btrfs_stat,
+ 		.exists = btrfs_exists,
+ 		.size = btrfs_size,
+ 		.read = btrfs_read,
+@@ -326,6 +337,7 @@ static struct fstype_info fstypes[] = {
+ 		.opendir = sqfs_opendir,
+ 		.readdir = sqfs_readdir,
+ 		.ls = fs_ls_generic,
++		.stat = fs_stat_unsupported,
+ 		.read = sqfs_read,
+ 		.size = sqfs_size,
+ 		.close = sqfs_close,
+@@ -366,6 +378,7 @@ static struct fstype_info fstypes[] = {
+ 		.probe = fs_probe_unsupported,
+ 		.close = fs_close_unsupported,
+ 		.ls = fs_ls_unsupported,
++		.stat = fs_stat_unsupported,
+ 		.exists = fs_exists_unsupported,
+ 		.size = fs_size_unsupported,
+ 		.read = fs_read_unsupported,
+@@ -500,6 +513,19 @@ int fs_ls(const char *dirname)
+ 	return ret;
+ }
+ 
++int fs_stat(const char *dirname, __le32 *mtime)
++{
++	int ret;
++
++	struct fstype_info *info = fs_get_info(fs_type);
++
++	ret = info->stat(dirname, mtime);
++
++	fs_close();
++
++	return ret;
++}
++
+ int fs_exists(const char *filename)
+ {
+ 	int ret;
+@@ -809,6 +835,33 @@ int do_load(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+ 	return 0;
+ }
+ 
++int do_stat(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
++	  int fstype, __le32 *mtime)
++{
++	if (argc < 2)
++		return CMD_RET_USAGE;
++	if (argc > 4)
++		return CMD_RET_USAGE;
++
++	printf("Fstype is %d\n", fstype);
++	printf("args %s %s\n", argv[1], argv[2]);
++	if (fs_set_blk_dev(argv[1], (argc >= 3) ? argv[2] : NULL, fstype))
++	{
++		printf("fail 1 of do_stat\n");
++		return 1;
++	}
++
++	printf("other args %s\n", argv[3]);
++	if (fs_stat(argc >= 4 ? argv[3] : "/", mtime))
++	{
++		printf("fail 2 of do_stat\n");
++		return 1;
++	}
++	printf("mtime is %d\n", *mtime);
++
++	return 0;
++}
++
+ int do_ls(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+ 	  int fstype)
+ {
+diff --git a/include/env.h b/include/env.h
+index d2a5954ded8..5f80b54d2d0 100644
+--- a/include/env.h
++++ b/include/env.h
+@@ -308,6 +308,18 @@ int env_select(const char *name);
+  */
+ int env_import(const char *buf, int check, int flags);
+ 
++#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++/**
++ * env_check() - Check the environment binary representation for a valid crc
++ *
++ * This is similar to env_import, but does not actually import the environment
++ *
++ * @buf: Buffer containing the environment (struct environment_s *)
++ * Return: 0 if the CRC is valid
++ */
++int env_check(const char *buf);
++#endif
++
+ /**
+  * env_export() - Export the environment to a buffer
+  *
+diff --git a/include/ext4fs.h b/include/ext4fs.h
+index d96edfd0576..1e2bc78fff8 100644
+--- a/include/ext4fs.h
++++ b/include/ext4fs.h
+@@ -151,6 +151,7 @@ int ext4fs_mount(void);
+ void ext4fs_close(void);
+ void ext4fs_reinit_global(void);
+ int ext4fs_ls(const char *dirname);
++int ext4fs_stat(const char *dirname, __le32 *mtime);
+ int ext4fs_exists(const char *filename);
+ int ext4fs_size(const char *filename, loff_t *size);
+ void ext4fs_free_node(struct ext2fs_node *node, struct ext2fs_node *currroot);
+diff --git a/include/fs.h b/include/fs.h
+index a38511f3d01..bb64c19a18f 100644
+--- a/include/fs.h
++++ b/include/fs.h
+@@ -152,6 +152,10 @@ int fs_size(const char *filename, loff_t *size);
+ int fs_read(const char *filename, ulong addr, loff_t offset, loff_t len,
+ 	    loff_t *actread);
+ 
++#ifdef CONFIG_ENV_DUAL_BOOT_ENVIRONMENT
++struct fs_dirent *get_file(const char* name);
++#endif
++
+ /**
+  * fs_write() - write file to the partition previously set by fs_set_blk_dev()
+  *
+@@ -266,6 +270,8 @@ int do_load(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+ 	    int fstype);
+ int do_ls(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+ 	  int fstype);
++int do_stat(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
++	  int fstype, __le32 *mtime);
+ int file_exists(const char *dev_type, const char *dev_part, const char *file,
+ 		int fstype);
+ int do_save(struct cmd_tbl *cmdtp, int flag, int argc, char *const argv[],
+-- 
+2.43.0
+
