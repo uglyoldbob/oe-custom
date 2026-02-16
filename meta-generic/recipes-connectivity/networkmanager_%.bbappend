@@ -4,6 +4,8 @@ SRC_URI += "file://ethernet-static.nmconnection \
 	file://NetworkManager.conf \
 "
 
+UNPACKDIR ??= "${WORKDIR}"
+
 do_install:append() {
 	install -d ${D}/etc/NetworkManager/system-connections
 	install -m 0600 ${UNPACKDIR}/NetworkManager.conf ${D}/etc/NetworkManager/NetworkManager.conf

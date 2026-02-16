@@ -22,10 +22,12 @@ IMAGE_DEPENDS = "auto-radio"
 # SWUPDATE_IMAGES: list of images that will be part of the compound image
 # the list can have any binaries - images must be in the DEPLOY directory
 SWUPDATE_IMAGES = " \
-	auto-radio-${MACHINE}.rootfs.tar.gz.enc \
+	auto-radio-${MACHINE}.rootfs.tar.gz \
 "
 
-# Images can have multiple formats - define which image must be
-# taken to be put in the compound image
-SWUPDATE_IMAGES_FSTYPES[auto-radio] = ".tar.gz.enc"
+SWUPDATE_IMAGES = "auto-radio"
+
+SWUPDATE_IMAGES_FSTYPES[auto-radio] = ".rootfs.tar.gz"
+SWUPDATE_IMAGES_ENCRYPTED[auto-radio] = "1"
+
 

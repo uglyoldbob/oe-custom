@@ -1,0 +1,12 @@
+rootfs=`swupdate -g`
+CURRENT_ROOT="${rootfs:5}"
+CURRENT_PART="${CURRENT_ROOT: -1}"
+if [ $CURRENT_ROOT == "1" ]; then
+	selection="-e stable,copy2"
+else
+	selection="-e stable,copy1"
+fi
+
+CFGFILE="/etc/swupdate.cfg"
+
+SWUPDATE_ARGS="${selection} -p 'reboot' -f ${CFGFILE}"

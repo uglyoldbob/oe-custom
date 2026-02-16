@@ -2,20 +2,82 @@ software =
 {
 	version = "@@PV@@";
 
-	xjrad = {
-		hardware-compatibility: [ "1.0" ];
+	@@SWU_MACHINE_NAME@@ = {
+		hardware-compatibility: [ "@@SWU_MACHINE_VERSION@@" ];
 
-		images: (
-			{
-				filename = "auto-radio-xjrad.rootfs.tar.gz.enc";
-				type = "archive";
-				compressed = "zlib";
-				encrypted = true;
-				filesystem = "ext4";
-				preserve-attributes = true;
-				path = "/";
-				sha256 = "$swupdate_get_sha256(auto-radio-xjrad.rootfs.tar.gz.enc)";
-			}
-		);
+		stable : {
+			copy1 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/mmcblk2p1";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
+				images: (
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz)";
+						device = "/dev/mmcblk2p1";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "1";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+			copy2 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/mmcblk2p2";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
+				images: (
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz)";
+						device = "/dev/mmcblk2p2";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "2";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+		};
 	};
 }

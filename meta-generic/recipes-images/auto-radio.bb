@@ -8,9 +8,9 @@ LICENSE = "MIT"
 
 IMAGE_LINGUAS = "en-us"
 
-IMAGE_FSTYPES = "tar.gz wic.gz wic.zst wic wic.bmap ext4"
+inherit core-image
 
-inherit core-image swupdate-enc
+IMAGE_FSTYPES = "tar.gz wic.gz wic.zst wic wic.bmap ext4"
 
 FILESEXTRAPATHS:prepend := "${TOPDIR}:"
 

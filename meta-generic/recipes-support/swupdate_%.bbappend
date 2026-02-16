@@ -12,7 +12,9 @@ SRC_URI += "file://tempdefconfig \
 	file://swupdate.service \
 "
 
-S = "${WORKDIR}/git"
+UNPACKDIR ??= "${WORKDIR}"
+
+S = "${UNPACKDIR}/git"
 
 DEPENDS += " libarchive curl"
 RDEPENDS:${PN} += " bash"
