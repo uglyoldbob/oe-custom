@@ -38,6 +38,7 @@ do_compile:prepend() {
 			bberror "Unexpected distro: ${DISTRO_CODENAME}"
 			;;
 	esac
+	export AUTO_FULLSCREEN="yes"
 }
 
 do_install:append() {
