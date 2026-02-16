@@ -6,7 +6,10 @@ SRC_URI = " \
 	file://sw-description \
 "
 
-inherit swupdate
+inherit system-version swupdate
+PV = "${SYSTEM_VERSION}"
+
+IMAGE_BASENAME = "${PN}-${PV}"
 
 SWUPDATE_SIGNING = "RSA"
 SWUPDATE_IMAGES_ENCRYPTED = "True"
