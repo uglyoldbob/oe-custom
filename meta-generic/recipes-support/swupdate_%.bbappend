@@ -8,7 +8,6 @@ SRC_URI += "file://tempdefconfig \
 	file://conf/signing/public.pem \
 	file://conf/keys.conf \
 	file://swupdate.cfg \
-	file://09-swupdate-args \
 	file://swupdate.service \
 "
 
@@ -16,7 +15,7 @@ UNPACKDIR ??= "${WORKDIR}"
 
 S = "${UNPACKDIR}/git"
 
-DEPENDS += " libarchive curl"
+DEPENDS += " libarchive curl e2fsprogs"
 RDEPENDS:${PN} += " bash"
 
 inherit swupdate-lib
@@ -47,7 +46,5 @@ do_install:append() {
 	install -m 0600 ${S}/encryption_key ${D}/etc/swupdate/encryption
 	install -d ${D}/usr/bin
 	echo "${SWU_MACHINE_NAME} ${SWU_MACHINE_VERSION}" > ${D}/etc/hwrevision
-	install -m 0644 ${UNPACKDIR}/09-swupdate-args ${D}${libdir}/swupdate/conf.d/
-	sed -i "s#@MACHINE@#${MACHINE}#g" ${D}${libdir}/swupdate/conf.d/09-swupdate-args
 }
 
