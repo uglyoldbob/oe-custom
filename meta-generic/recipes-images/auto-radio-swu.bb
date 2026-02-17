@@ -33,4 +33,10 @@ SWUPDATE_IMAGES = "auto-radio"
 SWUPDATE_IMAGES_FSTYPES[auto-radio] = ".rootfs.tar.gz"
 SWUPDATE_IMAGES_ENCRYPTED[auto-radio] = "1"
 
+do_remote_deploy[network] = "1"
 
+do_remote_deploy() {
+	scp -i ${DEPLOY_SSH_KEY} "${DEPLOY_DIR_IMAGE}/auto-radio-swu-${SYSTEM_VERSION}-${MACHINE}.rootfs.swu" ${DEPLOY_SERVER_PATH}
+}
+
+addtask do_remote_deploy after do_swuimage before do_build
