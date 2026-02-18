@@ -1,0 +1,21 @@
+software =
+{
+	version = "@@PV@@";
+
+	xjrad = {
+		hardware-compatibility: [ "1.0" ];
+
+		images: (
+			{
+				filename = "auto-radio-xjrad.rootfs.tar.gz.enc";
+				type = "archive";
+				compressed = "zlib";
+				encrypted = true;
+				filesystem = "ext4";
+				preserve-attributes = true;
+				path = "/";
+				sha256 = "$swupdate_get_sha256(auto-radio-xjrad.rootfs.tar.gz.enc)";
+			}
+		);
+	};
+}

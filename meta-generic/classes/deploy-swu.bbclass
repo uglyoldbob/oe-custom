@@ -1,0 +1,14 @@
+do_remote_deploy[network] = "1"
+do_remote_deploy() {
+	if [ -z "${DEPLOY_SSH_KEY}" ]; then
+        bbfatal "DEPLOY_SSH_KEY should be set in local.conf."
+    fi
+	if [ -z "${DEPLOY_SERVER_PATH}" ]; then
+        bbfatal "DEPLOY_SERVER_PATH should be set in local.conf."
+    fi
+	if [ -z "${DEPLOY_CHMOD}" ]; then
+		chmod ${DEPLOY_CHMOD} "${DEPLOY_DIR_IMAGE}/${PN}-${SYSTEM_VERSION}-${MACHINE}.rootfs.swu"
+	fi
+	scp -i ${DEPLOY_SSH_KEY} "${DEPLOY_DIR_IMAGE}/${PN}-${SYSTEM_VERSION}-${MACHINE}.rootfs.swu" ${DEPLOY_SERVER_PATH}
+}
+addtask do_remote_deploy after do_swuimage before do_build

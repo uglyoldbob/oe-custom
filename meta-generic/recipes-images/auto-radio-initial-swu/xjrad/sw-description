@@ -1,0 +1,109 @@
+software =
+{
+	version = "@@PV@@";
+
+	@@SWU_MACHINE_NAME@@ = {
+		hardware-compatibility: [ "@@SWU_MACHINE_VERSION@@" ];
+
+		stable : {
+			copy1 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/mmcblk2p1";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
+				images: (
+					{
+						filename = "imx-boot";
+						type = "raw";
+						device = "/dev/mmcblk2";
+						offset = "0x8000";
+						installed-directly = true;
+						sha256 = "$swupdate_get_sha256(imx-boot)";
+					},
+					{
+						filename = "u-boot-initial-env-@@MACHINE@@-sd";
+						type = "bootloader";
+						sha256 = "$swupdate_get_sha256(u-boot-initial-env-@@MACHINE@@-sd)";
+					},
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz)";
+						device = "/dev/mmcblk2p1";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "1";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+			copy2 : {
+				partitions: (
+				{
+					type = "diskformat";
+					device = "/dev/mmcblk2p2";
+
+					properties: {
+						fstype = "ext4";
+						force = "true";
+					}
+				});
+				images: (
+					{
+						filename = "imx-boot";
+						type = "raw";
+						device = "/dev/mmcblk2";
+						offset = "0x8000";
+						installed-directly = true;
+						sha256 = "$swupdate_get_sha256(imx-boot)";
+					},
+					{
+						filename = "u-boot-initial-env-@@MACHINE@@-sd";
+						type = "bootloader";
+						sha256 = "$swupdate_get_sha256(u-boot-initial-env-@@MACHINE@@-sd)";
+					},
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz)";
+						device = "/dev/mmcblk2p2";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "2";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+		};
+	};
+}

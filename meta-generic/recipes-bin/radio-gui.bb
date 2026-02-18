@@ -39,6 +39,7 @@ do_compile:prepend() {
 			;;
 	esac
 	export AUTO_FULLSCREEN="yes"
+	export UPDATE_SERVER="${UPDATE_SERVER}"
 }
 
 do_install:append() {

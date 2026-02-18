@@ -1,0 +1,63 @@
+software =
+{
+	version = "@@PV@@";
+
+	@@SWU_MACHINE_NAME@@ = {
+		hardware-compatibility: [ "@@SWU_MACHINE_VERSION@@" ];
+
+		stable : {
+			copy1 : {
+				images: (
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz.enc";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz.enc)";
+						device = "/dev/sda2";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "2";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+			copy2 : {
+				images: (
+					{
+						filename = "auto-radio-@@MACHINE@@.rootfs.tar.gz.enc";
+						type = "archive";
+						compressed = "zlib";
+						encrypted = true;
+						filesystem = "ext4";
+						preserve-attributes = true;
+						installed-directly = true;
+						path = "/";
+						sha256 = "$swupdate_get_sha256(auto-radio-@@MACHINE@@.rootfs.tar.gz.enc)";
+						device = "/dev/sda3";
+					}
+				);
+				bootenv: (
+					{
+						name = "bootpart";
+						value = "3";
+					},
+					{
+						name = "ustate";
+						value = "1";
+					}
+				);
+			};
+		};
+	};
+}
