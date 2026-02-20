@@ -5,7 +5,16 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/MIT;md5=0835ad
 
 inherit cargo-update-recipe-crates cargo pkgconfig
 
-DEPENDS = "libdbus-c++ bindgen-cli clang alsa-lib protobuf protobuf-native"
+DEPENDS = "\
+ libdbus-c++ \
+ bindgen-cli \
+ clang \
+ clang-native \
+ alsa-lib \
+ protobuf \
+ protobuf-native \
+ swupdate \
+"
 
 #pull in generated crate info
 include ${BPN}-crates.inc
@@ -25,6 +34,8 @@ SRCREV = "${AUTOREV}"
 
 SRC_URI[android-auto-0.1.0.sha256sum] = "7ddcd902db329bc2f91abb9dd62aa7219c7949f3edc4ecc26424bf111de58394"
 SRC_URI[bluetooth-rust-0.1.0.sha256sum] = "d902a85a6a6350272f3211f2aaae918b47fb99ce947e5ef5e3cb05a9e8279619"
+
+CARGO_BUILD_FLAGS += " -F swupdate"
 
 do_compile:prepend() {
 	case ${DISTRO_CODENAME} in

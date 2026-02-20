@@ -46,7 +46,7 @@ software =
 				);
 				bootenv: (
 					{
-						name = "bootpart";
+						name = "mmcpart";
 						value = "1";
 					},
 					{
@@ -95,7 +95,7 @@ software =
 				);
 				bootenv: (
 					{
-						name = "bootpart";
+						name = "mmcpart";
 						value = "2";
 					},
 					{
