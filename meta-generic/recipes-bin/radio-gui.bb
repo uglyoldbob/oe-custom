@@ -31,10 +31,12 @@ SRC_URI += " \
 	file://radio.service \
 	file://radio-gui.service \
 "
-SRCREV_default = "4339845be990139cd4444b9f631252d069a44895"
+SRCREV_default = "1c1a2bd81d6721ed92f30a72f950418f910020e6"
 SRCREV_egui_virtual_keyboard = "c2f3cc26d1028cd23f0630a56c3e8c9173ed9ab8"
 SRCREV_FORMAT = "default_egui_virtual_keyboard"
 
+SRC_URI[nmrs-2.0.0.sha256sum] = "7fde6b64792a00832173305aa08846fbea4e403bbb8caee9f9b48dc1aa40fe95"
+SRC_URI[rgb-0.8.52.sha256sum] = "0c6a884d2998352bb4daf0183589aec883f16a6da1f4dde84d8e2e9a5409a1ce"
 SRC_URI[android-auto-0.1.0.sha256sum] = "7ddcd902db329bc2f91abb9dd62aa7219c7949f3edc4ecc26424bf111de58394"
 SRC_URI[bluetooth-rust-0.1.0.sha256sum] = "d902a85a6a6350272f3211f2aaae918b47fb99ce947e5ef5e3cb05a9e8279619"
 
