@@ -32,6 +32,7 @@ IMAGE_INSTALL += " \
 IMAGE_INSTALL += " \
 	kernel-base \
 	swupdate \
+	swupdate-client \
 	swupdate-www \
 	openssh \
 	libgpiod libgpiod-tools libgpiod-dev \
