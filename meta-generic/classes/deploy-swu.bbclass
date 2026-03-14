@@ -1,3 +1,5 @@
+DEPENDS += "rsync-native"
+
 do_remote_deploy[network] = "1"
 do_remote_deploy() {
 	if [ -z "${DEPLOY_SSH_KEY}" ]; then
@@ -9,7 +11,7 @@ do_remote_deploy() {
 	if [ -z "${DEPLOY_CHMOD}" ]; then
 		chmod ${DEPLOY_CHMOD} "${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}.rootfs.swu"
 	fi
-	rsync -e "ssh -i ${DEPLOY_SSH_KEY}" \
+	rsync -e "ssh -i ${DEPLOY_SSH_KEY}" -vL \
   		--chmod=u+rw,g+rw,o+r \
   		--perms \
   		"${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}.rootfs.swu" \
