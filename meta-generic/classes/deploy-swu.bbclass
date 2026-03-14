@@ -9,6 +9,10 @@ do_remote_deploy() {
 	if [ -z "${DEPLOY_CHMOD}" ]; then
 		chmod ${DEPLOY_CHMOD} "${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}.rootfs.swu"
 	fi
-	scp -i ${DEPLOY_SSH_KEY} "${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}.rootfs.swu" ${DEPLOY_SERVER_PATH}
+	rsync -e "ssh -i ${DEPLOY_SSH_KEY}" \
+  		--chmod=u+rw,g+rw,o+r \
+  		--perms \
+  		"${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}.rootfs.swu" \
+  		"${DEPLOY_SERVER_PATH}"
 }
 addtask do_remote_deploy after do_swuimage before do_build
