@@ -14,6 +14,8 @@ DEPENDS = "\
  protobuf \
  protobuf-native \
  swupdate \
+ libimxvpuapi2 \
+ libimxdmabuffer \
 "
 
 #pull in generated crate info
@@ -30,10 +32,10 @@ SRC_URI += " \
 	file://radio.service \
 	file://radio-gui.service \
 "
-SRCREV_default = "4cf9c4746f18d56c8a9bdcb61b3480c6fcbae9f7"
+SRCREV_default = "3b2ff409e3e8a75cf4b60df688679243568a5b96"
 SRCREV_FORMAT = "default"
 
-CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,androidauto"
+CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,androidauto,imxvpuapi2"
 
 do_compile:prepend() {
 	case ${DISTRO_CODENAME} in
