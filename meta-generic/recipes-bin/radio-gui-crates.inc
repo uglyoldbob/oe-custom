@@ -20,7 +20,7 @@ SRC_URI += " \
     crate://crates.io/alsa/0.9.1 \
     crate://crates.io/alsa-sys/0.3.1 \
     crate://crates.io/android-activity/0.6.0 \
-    crate://crates.io/android-auto/0.3.4 \
+    crate://crates.io/android-auto/0.3.6 \
     crate://crates.io/android-build/0.1.3 \
     crate://crates.io/android-properties/0.2.2 \
     crate://crates.io/android_system_properties/0.1.5 \
@@ -765,7 +765,7 @@ SRC_URI[aligned-vec-0.6.4.sha256sum] = "dc890384c8602f339876ded803c97ad529f3842a
 SRC_URI[alsa-0.9.1.sha256sum] = "ed7572b7ba83a31e20d1b48970ee402d2e3e0537dcfe0a3ff4d6eb7508617d43"
 SRC_URI[alsa-sys-0.3.1.sha256sum] = "db8fee663d06c4e303404ef5f40488a53e062f89ba8bfed81f42325aafad1527"
 SRC_URI[android-activity-0.6.0.sha256sum] = "ef6978589202a00cd7e118380c448a08b6ed394c3a8df3a430d0898e3a42d046"
-SRC_URI[android-auto-0.3.4.sha256sum] = "1c9449a483f1abbfc58433ba99db16f631c4abeac731809f4daa116e8184bd6f"
+SRC_URI[android-auto-0.3.6.sha256sum] = "a44c3aa556ce451476f4940f05caff3f2ea265254ed51509c21a5cfdbaeb29da"
 SRC_URI[android-build-0.1.3.sha256sum] = "8cac4c64175d504608cf239756339c07f6384a476f97f20a7043f92920b0b8fd"
 SRC_URI[android-properties-0.2.2.sha256sum] = "fc7eb209b1518d6bb87b283c20095f5228ecda460da70b44f0802523dea6da04"
 SRC_URI[android_system_properties-0.1.5.sha256sum] = "819e7219dbd41043ac279b19830f2efc897156490d7fd6ea916720117ee66311"

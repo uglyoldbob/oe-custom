@@ -32,10 +32,10 @@ SRC_URI += " \
 	file://radio.service \
 	file://radio-gui.service \
 "
-SRCREV_default = "3b2ff409e3e8a75cf4b60df688679243568a5b96"
+SRCREV_default = "efc97b14c45adcf18a5a96c05ab8227afa8489d5"
 SRCREV_FORMAT = "default"
 
-CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,androidauto,imxvpuapi2"
+CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,usb,androidauto,imxvpuapi2"
 
 do_compile:prepend() {
 	case ${DISTRO_CODENAME} in
