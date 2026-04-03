@@ -1,0 +1,51 @@
+[inclinometer.Simulated]
+x = 0.0
+y = 0.0
+
+[main_cabin_temperature_sensor.Simulated]
+temp = 72.30000305175781
+
+[hvac_vent_temperature_sensor.Simulated]
+temp = 72.30000305175781
+
+[orientation.Simulated]
+x = 0.0
+y = 0.0
+
+[engine_coolant_temp.Simulated]
+temp = 72.30000305175781
+
+[engine_oil_temp.Simulated]
+temp = 72.30000305175781
+
+[engine_exhaust_temp.Simulated]
+temp = 72.30000305175781
+
+[front_diff_temp.Simulated]
+temp = 72.30000305175781
+
+[rear_diff_temp.Simulated]
+temp = 72.30000305175781
+
+[engine_oil_pressure.Simulator]
+pressure = 0.0
+
+[coolant_pressure.Simulator]
+pressure = 0.0
+
+[trans_temp.Simulated]
+temp = 72.30000305175781
+
+[transfer_temp.Simulated]
+temp = 72.30000305175781
+
+[door_open.Simulator]
+
+[engine_rpm.Simulator]
+rpm = 0.0
+
+[main_voltage.Simulator]
+volts = 0.0
+
+[log]
+base_path = "/data"

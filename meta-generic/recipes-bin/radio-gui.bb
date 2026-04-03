@@ -31,6 +31,7 @@ SRC_URI += " \
 	gitsm://github.com/uglyoldbob/radio.git;protocol=https;branch=master;name=default \
 	file://radio.service \
 	file://radio-gui.service \
+	file://settings.toml \
 "
 SRCREV_default = "efc97b14c45adcf18a5a96c05ab8227afa8489d5"
 SRCREV_FORMAT = "default"
@@ -59,6 +60,9 @@ do_install:append() {
 	install -d ${D}/etc/systemd/system
 	install -m 0600 ${UNPACKDIR}/radio.service ${D}/etc/systemd/system/radio.service
 	ln -s /etc/systemd/system/radio.service ${D}/etc/systemd/system/multi-user.target.wants/radio.service
+
+	install -d ${D}/etc/radio
+	install -m 0600 ${UNPACKDIR}/settings.toml ${D}/etc/radio
 
 	install -d ${D}/etc/systemd/system/graphical.target.wants
 	install -m 0600 ${UNPACKDIR}/radio-gui.service ${D}/etc/systemd/system/radio-gui.service
