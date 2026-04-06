@@ -36,6 +36,9 @@ pressure = 0.0
 [trans_temp.Simulated]
 temp = 72.30000305175781
 
+[intake_air.Simulated]
+temp = 72.30000305175781
+
 [transfer_temp.Simulated]
 temp = 72.30000305175781
 
