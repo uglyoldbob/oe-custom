@@ -3,10 +3,12 @@ Description=Radio background service
 Documentation=https://github.com/uglyoldbob/radio
 After=NetworkManager.service
 After=bluetooth.service
+After=dbus.service
 
 [Service]
 Type=simple
-ExecStart=/bin/radio_service --nvconfig=/data/radioconfig.bin
+ExecStartPre=/bin/sh -c 'until [ -d /sys/class/bluetooth/hci0 ]; do sleep 1; done'
+ExecStart=/bin/radio_service --nvconfig=/etata/radioconfig.bin
 Restart=always
 
 [Install]

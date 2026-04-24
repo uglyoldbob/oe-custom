@@ -57,6 +57,8 @@ IMAGE_INSTALL += " \
 	strace \
 "
 
+PACKAGE_EXCLUDE += "bluez5-obex"
+
 #alsaloop -C bluealsa:DEV=(address),PROFILE=a2dp -P plughw:0,3 -r 32000 -c 2 -f S16_LE --sync=simple -t 50000 -T 1
 
 # Create a user account with a password
@@ -67,6 +69,7 @@ inherit extrausers
 EXTRA_USERS_PARAMS = " \
     useradd -p '$5$SbHarFQFMohIwIjP$4KaSsQDCraqEGzJewZk.2BYBzpVhxdx4EX/omngxF35' -G sudo xbox; \
     usermod -a -G audio weston; \
+    usermod -a -G disk weston; \
 "
 
 

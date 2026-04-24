@@ -16,6 +16,7 @@ DEPENDS = "\
  swupdate \
  libimxvpuapi2 \
  libimxdmabuffer \
+ libiio \
 "
 
 #pull in generated crate info
@@ -32,11 +33,12 @@ SRC_URI += " \
 	file://radio.service \
 	file://radio-gui.service \
 	file://settings.toml \
+	file://gui-settings.toml \
 "
-SRCREV_default = "efc97b14c45adcf18a5a96c05ab8227afa8489d5"
+SRCREV_default = "f3673bd48a5871b9e68ae167aebdb6cbcb46cb64"
 SRCREV_FORMAT = "default"
 
-CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,usb,androidauto,imxvpuapi2"
+CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,usb,androidauto,imxvpuapi2,gpio,iio,evdev"
 
 do_compile:prepend() {
 	case ${DISTRO_CODENAME} in
@@ -63,8 +65,11 @@ do_install:append() {
 
 	install -d ${D}/etc/radio
 	install -m 0600 ${UNPACKDIR}/settings.toml ${D}/etc/radio
+	install -m 0600 ${UNPACKDIR}/gui-settings.toml ${D}/etc/radio
 
 	install -d ${D}/etc/systemd/system/graphical.target.wants
 	install -m 0600 ${UNPACKDIR}/radio-gui.service ${D}/etc/systemd/system/radio-gui.service
 	ln -s /etc/systemd/system/radio-gui.service ${D}/etc/systemd/system/graphical.target.wants/radio-gui.service
 }
+
+FETCHCMD_wget = "/usr/bin/env wget -U 'Wget/1.21' -t 2"

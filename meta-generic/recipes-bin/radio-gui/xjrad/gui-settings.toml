@@ -1,0 +1,8 @@
+[b1.Evdev]
+dev = "/dev/input/event1"
+
+[b2.Evdev]
+dev = "/dev/input/event2"
+
+[b3.Evdev]
+dev = "/dev/input/event3"

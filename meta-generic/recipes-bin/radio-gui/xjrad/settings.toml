@@ -1,0 +1,132 @@
+[main_cabin_temperature_sensor.Simulated]
+temp = 72.30000305175781
+
+[hvac_vent_temperature_sensor.Simulated]
+temp = 72.30000305175781
+
+[orientation.Simulated]
+
+[engine_coolant_temp.Simulated]
+temp = 72.30000305175781
+
+[engine_oil_temp.Simulated]
+temp = 72.30000305175781
+
+[engine_exhaust_temp.Simulated]
+temp = 72.30000305175781
+
+[front_diff_temp.Simulated]
+temp = 72.30000305175781
+
+[rear_diff_temp.Simulated]
+temp = 72.30000305175781
+
+[intake_air.Simulated]
+temp = 72.30000305175781
+
+[engine_oil_pressure.Simulator]
+pressure = 0.0
+
+[coolant_pressure.Simulator]
+pressure = 0.0
+
+[trans_temp.Simulated]
+temp = 72.30000305175781
+
+[transfer_temp.Simulated]
+temp = 72.30000305175781
+
+[door_open.Simulator]
+
+[engine_rpm.Simulator]
+rpm = 0.0
+
+[main_voltage.Simulator]
+volts = 0.0
+
+[log]
+base_path = "/data"
+
+[gauge_oil_pressure.Dummy]
+
+[gauge_engine_temp.Dummy]
+
+[gauge_tachometer.Dummy]
+
+[ac_clutch_enable.Dummy]
+
+[heater_enable_output.Dummy]
+
+[hvac_temperature_control.Dummy]
+
+[hvac_fan_output.Dummy]
+
+[[offroad_lights]]
+
+[offroad_lights.Gpio]
+chip = "/dev/gpiochip6"
+line = 5
+output = false
+
+[[offroad_lights]]
+
+[offroad_lights.Gpio]
+chip = "/dev/gpiochip6"
+line = 6
+output = false
+
+[[offroad_lights]]
+
+[offroad_lights.Gpio]
+chip = "/dev/gpiochip6"
+line = 7
+output = false
+
+[[offroad_lights]]
+
+[offroad_lights.Dummy]
+val = false
+
+[winch.Dummy]
+
+[aux_out.Dummy]
+
+[inverter.Dummy]
+
+[door_lock.Dummy]
+
+[door_unlock.Dummy]
+
+[[windows]]
+
+[windows.Dummy]
+
+[[windows]]
+
+[windows.Dummy]
+
+[[windows]]
+
+[windows.Dummy]
+
+[[windows]]
+
+[windows.Dummy]
+
+[camera_leds.Dummy]
+
+[[aux_in]]
+
+[aux_in.Simulator]
+
+[[aux_in]]
+
+[aux_in.Simulator]
+
+[[aux_in]]
+
+[aux_in.Simulator]
+
+[[aux_in]]
+
+[aux_in.Simulator]
