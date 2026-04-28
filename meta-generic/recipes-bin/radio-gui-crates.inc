@@ -80,7 +80,7 @@ SRC_URI += " \
     crate://crates.io/block2/0.6.2 \
     crate://crates.io/blocking/1.6.2 \
     crate://crates.io/bluer/0.17.4 \
-    crate://crates.io/bluetooth-rust/0.3.8 \
+    crate://crates.io/bluetooth-rust/0.3.9 \
     crate://crates.io/built/0.8.0 \
     crate://crates.io/bumpalo/3.20.2 \
     crate://crates.io/bytemuck/1.25.0 \
@@ -843,7 +843,7 @@ SRC_URI[block2-0.5.1.sha256sum] = "2c132eebf10f5cad5289222520a4a058514204aed6d79
 SRC_URI[block2-0.6.2.sha256sum] = "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5"
 SRC_URI[blocking-1.6.2.sha256sum] = "e83f8d02be6967315521be875afa792a316e28d57b5a2d401897e2a7921b7f21"
 SRC_URI[bluer-0.17.4.sha256sum] = "af68112f5c60196495c8b0eea68349817855f565df5b04b2477916d09fb1a901"
-SRC_URI[bluetooth-rust-0.3.8.sha256sum] = "6a33fcc36fc3b10902eba8cf595c5ead89f16a2e55c8e63ea2fca8fa3ba7ceb2"
+SRC_URI[bluetooth-rust-0.3.9.sha256sum] = "d904f7197bc2c1fde5daa67c27fc94e75bb89facf99c74e48ad0ad70d20d9ffc"
 SRC_URI[built-0.8.0.sha256sum] = "f4ad8f11f288f48ca24471bbd51ac257aaeaaa07adae295591266b792902ae64"
 SRC_URI[bumpalo-3.20.2.sha256sum] = "5d20789868f4b01b2f2caec9f5c4e0213b41e3e5702a50157d699ae31ced2fcb"
 SRC_URI[bytemuck-1.25.0.sha256sum] = "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec"

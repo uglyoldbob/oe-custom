@@ -35,7 +35,7 @@ SRC_URI += " \
 	file://settings.toml \
 	file://gui-settings.toml \
 "
-SRCREV_default = "f3673bd48a5871b9e68ae167aebdb6cbcb46cb64"
+SRCREV_default = "260f7e97073e69fb94dfc179b05a6271fa3ff936"
 SRCREV_FORMAT = "default"
 
 CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,usb,androidauto,imxvpuapi2,gpio,iio,evdev"

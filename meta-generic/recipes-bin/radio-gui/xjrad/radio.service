@@ -8,7 +8,7 @@ After=dbus.service
 [Service]
 Type=simple
 ExecStartPre=/bin/sh -c 'until [ -d /sys/class/bluetooth/hci0 ]; do sleep 1; done'
-ExecStart=/bin/radio_service --nvconfig=/etata/radioconfig.bin
+ExecStart=/bin/radio_service --nvconfig=/data/radioconfig.bin
 Restart=always
 
 [Install]
