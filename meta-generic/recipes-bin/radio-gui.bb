@@ -29,13 +29,13 @@ S = "${UNPACKDIR}/git"
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI += " \
-	gitsm://github.com/uglyoldbob/radio.git;protocol=https;branch=master;name=default \
+	gitsm://gitlab.com/thomas.epperson/radio.git;protocol=https;branch=master;name=default \
 	file://radio.service \
 	file://radio-gui.service \
 	file://settings.toml \
 	file://gui-settings.toml \
 "
-SRCREV_default = "260f7e97073e69fb94dfc179b05a6271fa3ff936"
+SRCREV_default = "855e001ebff5e0e3ea04d20faaba03be8e536dbd"
 SRCREV_FORMAT = "default"
 
 CARGO_BUILD_FLAGS += " --no-default-features -F swupdate,bluetooth,wifi,usb,androidauto,imxvpuapi2,gpio,iio,evdev"
